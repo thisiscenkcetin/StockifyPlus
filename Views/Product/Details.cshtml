@@ -1,0 +1,74 @@
+@{
+    var product = ViewData.Model as StockifyPlus.Models.Product;
+    ViewBag.Title = "Ürün Detayları";
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+    var vatRate = 0.20m;
+    var taxAmount = Math.Round(product.Price * vatRate / (1 + vatRate), 2);
+    var priceWithTax = product.Price + taxAmount;
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-box"></i> @product.Name
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p><strong>SKU:</strong> @product.SKU</p>
+                        <p><strong>Kategori:</strong> @product.Category?.Name</p>
+                        <p><strong>Fiyat:</strong> @product.Price.ToString("N2", trCulture) ₺</p>
+                        <p class="mb-0"><strong>Vergi Dahil Fiyat:</strong> @priceWithTax.ToString("N2", trCulture) ₺ <small class="text-muted">(Vergi: @taxAmount.ToString("N2", trCulture) ₺)</small></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Mevcut Stok:</strong> <span class="badge bg-primary fs-6">@product.StockQuantity</span></p>
+                        <p><strong>Kritik Seviye:</strong> <span class="badge bg-warning fs-6">@product.CriticalStockLevel</span></p>
+                        <p><strong>Durum:</strong> 
+                            @if (product.IsActive)
+                            {
+                                <span class="badge bg-success">Aktif</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Pasif</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <p><strong>Açıklama:</strong></p>
+                <p>@(string.IsNullOrEmpty(product.Description) ? "-" : product.Description)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-tools"></i> İşlemler
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("Edit", "Product", new { id = product.Id })" class="btn btn-warning btn-custom">
+                        <i class="fas fa-edit"></i> Düzenle
+                    </a>
+                    <a href="@Url.Action("Delete", "Product", new { id = product.Id })" class="btn btn-danger btn-custom">
+                        <i class="fas fa-trash"></i> Sil
+                    </a>
+                    <a href="@Url.Action("StockIn", "StockMovement")" class="btn btn-success btn-custom">
+                        <i class="fas fa-arrow-up"></i> Stok Ekle
+                    </a>
+                    <a href="@Url.Action("StockOut", "StockMovement")" class="btn btn-danger btn-custom">
+                        <i class="fas fa-arrow-down"></i> Stok Çıkar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

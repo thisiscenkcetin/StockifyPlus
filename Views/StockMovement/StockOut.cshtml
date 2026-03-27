@@ -1,0 +1,197 @@
+@{
+    ViewBag.Title = "Stok Çıkışı";
+    var products = ViewBag.Products as List<StockifyPlus.Models.Product> ?? new List<StockifyPlus.Models.Product>();
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-arrow-down"></i> Stok Çıkışı Kaydı
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="StockOut">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="productId" class="form-label mb-0">Ürün Seçin <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="scanBarcodeBtn" data-bs-toggle="modal" data-bs-target="#barcodeScannerModal">
+                                <i class="fas fa-camera"></i> Kameradan Oku
+                            </button>
+                        </div>
+                        <select class="form-select" id="productId" name="productId" required>
+                            <option value="">-- Ürün Seçin --</option>
+                            @foreach (var product in products)
+                            {
+                                <option value="@product.Id">
+                                    @product.Name (Stok: @product.StockQuantity)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Çıkış Miktarı <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" 
+                               min="1" required placeholder="Örn: 50">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama (İsteğe Bağlı)</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Satış siparişi numarası, müşteri adı vb..."></textarea>
+                    </div>
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var modelState in ViewData.ModelState.Values)
+                            {
+                                @foreach (var error in modelState.Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                            }
+                        </div>
+                    }
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger btn-custom">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                        <a href="@Url.Action("Index", "StockMovement")" class="btn btn-secondary btn-custom">
+                            <i class="fas fa-times"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-exclamation-triangle"></i> Uyarı
+                </h6>
+                <p class="small text-danger"><strong>DİKKAT!</strong> Çıkış miktarı mevcut stok miktarından fazla olamaz.</p>
+                <p class="small">Sistem otomatik olarak kontrol eder ve hata mesajı gösterir.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="barcodeScannerModal" tabindex="-1" aria-labelledby="barcodeScannerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title" id="barcodeScannerModalLabel">
+                    <i class="fas fa-camera me-2"></i>Barkod / QR Kod Oku
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reader" style="width: 100%;"></div>
+                <small class="text-muted d-block mt-2">Kamerayı barkoda tutun. Okuma sonrası pencere otomatik kapanır.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+    <div id="scanToast" class="toast align-items-center text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="scanToastBody">Barkod başarıyla okundu.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script>
+        (() => {
+            const barcodeEndpoint = '@Url.Action("GetProductByBarcode", "Product")';
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            const productSelect = document.getElementById('productId');
+            const modalElement = document.getElementById('barcodeScannerModal');
+            const scanToastElement = document.getElementById('scanToast');
+            const scanToastBody = document.getElementById('scanToastBody');
+            const scanToast = new bootstrap.Toast(scanToastElement, { delay: 2200 });
+
+            let scanner = null;
+            let scanning = false;
+
+            function notify(message, isError = false) {
+                scanToastBody.textContent = message;
+                scanToastElement.classList.toggle('text-bg-success', !isError);
+                scanToastElement.classList.toggle('text-bg-danger', isError);
+                scanToast.show();
+            }
+
+            async function stopScanner() {
+                if (scanner) {
+                    await scanner.clear().catch(() => { });
+                    scanner = null;
+                }
+                scanning = false;
+            }
+
+            async function onScanSuccess(decodedText) {
+                if (scanning) {
+                    return;
+                }
+
+                scanning = true;
+                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                modal.hide();
+                await stopScanner();
+
+                if (navigator.vibrate) {
+                    navigator.vibrate(120);
+                }
+
+                const token = tokenInput ? tokenInput.value : '';
+
+                try {
+                    const response = await fetch(barcodeEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify({ barcode: decodedText })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || !result.success) {
+                        notify(result.message || 'Ürün bulunamadı.', true);
+                        return;
+                    }
+
+                    productSelect.value = String(result.id);
+                    notify(`${result.name} seçildi (Stok: ${result.currentStock}).`);
+                } catch {
+                    notify('Barkod doğrulama sırasında sunucu hatası oluştu.', true);
+                }
+            }
+
+            modalElement.addEventListener('shown.bs.modal', () => {
+                scanner = new Html5QrcodeScanner('reader', {
+                    fps: 10,
+                    qrbox: { width: 250, height: 130 },
+                    rememberLastUsedCamera: true
+                }, false);
+
+                scanner.render(onScanSuccess, () => { });
+            });
+
+            modalElement.addEventListener('hidden.bs.modal', async () => {
+                await stopScanner();
+            });
+        })();
+    </script>
+}

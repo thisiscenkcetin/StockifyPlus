@@ -1,0 +1,64 @@
+@{
+    ViewBag.Title = "Giriş Yap";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<section class="auth-card">
+    <div class="auth-card-header">
+        <i class="fas fa-right-to-bracket me-2"></i> Giriş Yap
+    </div>
+    <div class="auth-card-body">
+        <form method="post" asp-action="Login">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label for="username" class="form-label fw-semibold">Kullanıcı Adı <span class="text-danger">*</span></label>
+                <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                    <input type="text" class="form-control" id="username" name="username"
+                           required placeholder="Kullanıcı adınız" autocomplete="username" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label fw-semibold">Şifre <span class="text-danger">*</span></label>
+                <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password"
+                           required placeholder="Şifreniz" autocomplete="current-password" />
+                </div>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger py-2">
+                    @foreach (var modelState in ViewData.ModelState.Values)
+                    {
+                        @foreach (var error in modelState.Errors)
+                        {
+                            <div>@error.ErrorMessage</div>
+                        }
+                    }
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                <i class="fas fa-right-to-bracket me-1"></i> Giriş Yap
+            </button>
+        </form>
+
+        <hr class="auth-divider" />
+
+        <p class="text-center text-muted mb-2">Henüz hesabınız yok mu?</p>
+        <a href="@Url.Action("Register", "Account")" class="btn btn-success w-100 py-2 fw-semibold">
+            <i class="fas fa-user-plus me-1"></i> Kayıt Ol
+        </a>
+
+        <div class="demo-box mt-3">
+            <i class="fas fa-circle-info me-1"></i>
+            <strong>Test Hesabı</strong><br />
+            Kullanıcı Adı: admin<br />
+            Şifre: Admin123!
+        </div>
+    </div>
+</section>

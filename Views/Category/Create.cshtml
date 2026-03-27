@@ -1,0 +1,73 @@
+@{
+    ViewBag.Title = "Yeni Kategori Oluştur";
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus"></i> Yeni Kategori
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="Create">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Kategori Adı <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="Örn: Elektronik, Giyim, vb." required>
+                        @if (ViewData.ModelState.ContainsKey("name") && ViewData.ModelState["name"].Errors.Count > 0)
+                        {
+                            <small class="text-danger">@ViewData.ModelState["name"].Errors[0].ErrorMessage</small>
+                        }
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="3" placeholder="Kategori hakkında bilgi yazın..."></textarea>
+                    </div>
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var modelState in ViewData.ModelState.Values)
+                            {
+                                @foreach (var error in modelState.Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                            }
+                        </div>
+                    }
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success btn-custom">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                        <a href="@Url.Action("Index", "Category")" class="btn btn-secondary btn-custom">
+                            <i class="fas fa-times"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb"></i> İpuçları
+                </h6>
+                <ul>
+                    <li>Kategori adı en az 3 karakter olmalıdır.</li>
+                    <li>Kategori adı benzersiz olmalıdır.</li>
+                    <li>Açıklama isteğe bağlıdır.</li>
+                    <li>Kategoriyi daha sonra düzenleyebilirsiniz.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

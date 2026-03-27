@@ -1,0 +1,55 @@
+@{
+    var user = ViewData.Model as StockifyPlus.Models.AppUser;
+    ViewBag.Title = "Profilim";
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-circle"></i> Profil Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Kullanıcı Adı:</strong> @user.Username</p>
+                <p><strong>Ad Soyad:</strong> @user.FullName</p>
+                <p><strong>E-posta:</strong> @user.Email</p>
+                <p><strong>Rolü:</strong> 
+                    <span class="badge bg-primary">@user.Role.ToString()</span>
+                </p>
+                <p><strong>Durum:</strong> 
+                    @if (user.IsActive)
+                    {
+                        <span class="badge bg-success">Aktif</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Pasif</span>
+                    }
+                </p>
+                <p><strong>Kayıt Tarihi:</strong> @user.CreatedDate.ToString("dd.MM.yyyy HH:mm")</p>
+                <p><strong>Son Giriş:</strong> @(user.LastLoginDate.HasValue ? user.LastLoginDate.Value.ToString("dd.MM.yyyy HH:mm") : "Giriş yapılmamış")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-tools"></i> İşlemler
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("ChangePassword", "Account")" class="btn btn-warning btn-custom">
+                        <i class="fas fa-key"></i> Şifre Değiştir
+                    </a>
+                    <a href="@Url.Action("Logout", "Account")" class="btn btn-danger btn-custom">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

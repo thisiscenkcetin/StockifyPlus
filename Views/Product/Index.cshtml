@@ -1,0 +1,203 @@
+@{
+    ViewBag.Title = "Ürünler";
+    var products = ViewData.Model as List<StockifyPlus.Models.Product> ?? new List<StockifyPlus.Models.Product>();
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2 class="page-title">
+            <i class="fas fa-box"></i> Ürün Yönetimi
+        </h2>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="@Url.Action("ExportToExcel", "Product")" class="btn btn-success btn-custom">
+            <i class="fas fa-file-excel"></i> Dışarı Aktar
+        </a>
+        <button type="button" class="btn btn-outline-success btn-custom" data-bs-toggle="modal" data-bs-target="#excelImportModal">
+            <i class="fas fa-file-import"></i> İçeri Aktar
+        </button>
+        <a href="@Url.Action("Create", "Product")" class="btn btn-primary btn-custom">
+            <i class="fas fa-plus"></i> Yeni Ürün
+        </a>
+        <a href="@Url.Action("LowStock", "Product")" class="btn btn-warning btn-custom">
+            <i class="fas fa-exchange-alt"></i> Düşük Stok
+        </a>
+    </div>
+</div>
+
+@if (products.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>SKU</th>
+                    <th>Ürün Adı</th>
+                    <th>Kategori</th>
+                    <th>Stok Miktarı</th>
+                    <th>Kritik Seviye</th>
+                    <th>Fiyat</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                {
+                    var isLowStock = product.StockQuantity <= product.CriticalStockLevel;
+                    <tr class="@(isLowStock ? "table-danger" : "")">
+                        <td><strong>@product.SKU</strong></td>
+                        <td>@product.Name</td>
+                        <td>@product.Category?.Name</td>
+                        <td>
+                            <strong>@product.StockQuantity</strong>
+                            @if (isLowStock)
+                            {
+                                <span class="badge-low-stock">
+                                    <i class="fas fa-warning"></i> Düşük Stok
+                                </span>
+                            }
+                        </td>
+                        <td>@product.CriticalStockLevel</td>
+                        <td>
+                            @{ 
+                                var vatRate = 0.20m;
+                                var taxAmount = Math.Round(product.Price * vatRate / (1 + vatRate), 2);
+                            }
+                            <div><strong>@product.Price.ToString("N2", trCulture) ₺</strong></div>
+                            <small class="text-muted">Vergi: @taxAmount.ToString("N2", trCulture) ₺</small>
+                        </td>
+                        <td>
+                            <a href="@Url.Action("Barcode", "Product", new { id = product.Id })" 
+                               class="btn btn-sm btn-secondary btn-custom" title="QR / Barkod">
+                                ⛶
+                            </a>
+                            <a href="@Url.Action("Details", "Product", new { id = product.Id })" 
+                               class="btn btn-sm btn-info btn-custom">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="@Url.Action("Edit", "Product", new { id = product.Id })" 
+                               class="btn btn-sm btn-warning btn-custom">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="@Url.Action("Delete", "Product", new { id = product.Id })" 
+                               class="btn btn-sm btn-danger btn-custom">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Henüz ürün oluşturulmamış. 
+        <a href="@Url.Action("Create", "Product")">Yeni ürün oluşturmak için tıklayın.</a>
+    </div>
+}
+
+<div class="modal fade" id="excelImportModal" tabindex="-1" aria-labelledby="excelImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="excelImportModalLabel">
+                    <i class="fas fa-file-import"></i> Excel ile Ürün İçeri Aktar
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="excelImportForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="excelFileInput" class="form-label">Excel Dosyası (.xlsx)</label>
+                        <input class="form-control" type="file" id="excelFileInput" name="file" accept=".xlsx" required />
+                    </div>
+                    <div class="alert alert-info mb-0">
+                        Kolon sırası: <strong>SKU</strong>, <strong>Ürün Adı</strong>, <strong>Kategori</strong>, <strong>Fiyat</strong>, <strong>Miktar</strong>
+                    </div>
+                    <div id="excelImportResult" class="mt-3 d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" id="excelImportSubmitBtn" class="btn btn-success">
+                        <i class="fas fa-upload"></i> Yükle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const form = document.getElementById('excelImportForm');
+        if (!form) return;
+
+        const resultBox = document.getElementById('excelImportResult');
+        const submitBtn = document.getElementById('excelImportSubmitBtn');
+
+        function showResult(type, html) {
+            resultBox.className = `alert alert-${type} mt-3`;
+            resultBox.innerHTML = html;
+            resultBox.classList.remove('d-none');
+        }
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('excelFileInput');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                showResult('warning', 'Lütfen bir Excel dosyası seçin.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            const originalButtonText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Yükleniyor...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                const response = await fetch('@Url.Action("ImportFromExcel", "Product")', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token || ''
+                    },
+                    body: formData
+                });
+
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success) {
+                    showResult('danger', payload.message || 'İçeri aktarma sırasında hata oluştu.');
+                    return;
+                }
+
+                const errors = (payload.errors || []).slice(0, 8);
+                const errorsHtml = errors.length
+                    ? `<hr/><div><strong>Örnek hatalar:</strong><ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul></div>`
+                    : '';
+
+                showResult(
+                    'success',
+                    `Toplam satır: <strong>${payload.totalRows}</strong><br/>` +
+                    `Yeni eklenen: <strong>${payload.created}</strong><br/>` +
+                    `Güncellenen: <strong>${payload.updated}</strong><br/>` +
+                    `Atlanan: <strong>${payload.skipped}</strong>${errorsHtml}`
+                );
+
+                setTimeout(() => window.location.reload(), 1800);
+            } catch (error) {
+                showResult('danger', 'Sunucuya bağlanırken hata oluştu.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalButtonText;
+            }
+        });
+    })();
+</script>

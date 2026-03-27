@@ -1,0 +1,290 @@
+﻿@{
+    ViewBag.Title = "Yeni &Uuml;r&uuml;n Oluştur";
+    var categories = ViewBag.Categories as List<StockifyPlus.Models.Category> ?? new List<StockifyPlus.Models.Category>();
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus"></i> Yeni &Uuml;r&uuml;n
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="Create">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="mb-3">
+                        <label for="categoryId" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <select class="form-select" id="categoryId" name="categoryId" required>
+                                <option value="">-- Kategori Se&ccedil;in --</option>
+                                @foreach (var category in categories)
+                                {
+                                    <option value="@category.Id">@category.Name</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="toggleQuickCategoryBtn">
+                                <i class="fas fa-plus-circle"></i> Yeni Kategori Ekle
+                            </button>
+                        </div>
+                        <div class="card mt-2 d-none" id="quickCategoryPanel">
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <input type="text" id="quickCategoryName" class="form-control" placeholder="Kategori Adı">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" id="quickCategoryDescription" class="form-control" placeholder="A&ccedil;ıklama (opsiyonel)">
+                                    </div>
+                                    <div class="col-md-2 d-grid">
+                                        <button type="button" class="btn btn-success" id="saveQuickCategoryBtn">Ekle</button>
+                                    </div>
+                                </div>
+                                <small class="text-muted" id="quickCategoryMessage"></small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">&Uuml;r&uuml;n Adı <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sku" class="form-label">SKU (Stok Tutma Birimi) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="sku" name="sku" placeholder="&Ouml;rn: PROD-001" required>
+                            <button type="button" class="btn btn-outline-primary" id="generateSkuBtn">
+                                <i class="fas fa-random"></i> Oto SKU
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="basePrice" class="form-label">Fiyat (&#8378;) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="basePrice" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="vatRate" class="form-label">KDV</label>
+                            <select class="form-select" id="vatRate">
+                                <option value="0">%0 (İhracat İstisna)</option>
+                                <option value="1">%1</option>
+                                <option value="10">%10</option>
+                                <option value="20" selected>%20</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="price" class="form-label">KDV Dahil Fiyat (&#8378;)</label>
+                            <input type="text" class="form-control" id="priceDisplay" readonly>
+                            <input type="hidden" id="price" name="price" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <small class="text-muted" id="vatPreview">Fiyat: 0,00 &#8378; | Vergi: 0,00 &#8378; | Toplam: 0,00 &#8378;</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="stockQuantity" class="form-label">Stok <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="stockQuantity" name="stockQuantity" min="0" value="0" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="criticalLevel" class="form-label">Kritik Stok Seviyesi <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="criticalLevel" name="criticalLevel" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">A&ccedil;ıklama</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var modelState in ViewData.ModelState.Values)
+                            {
+                                @foreach (var error in modelState.Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                            }
+                        </div>
+                    }
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success btn-custom">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                        <a href="@Url.Action("Index", "Product")" class="btn btn-secondary btn-custom">
+                            <i class="fas fa-times"></i> &#304;ptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb"></i> &#304;pu&ccedil;lar&#305;
+                </h6>
+                <ul class="small">
+                    <li>SKU benzersiz olmalıdır.</li>
+                    <li>Kritik stok seviyesi, otomatik uyarı i&ccedil;in kullanılır.</li>
+                    <li>Fiyat para birimi olarak kayıt edilir.</li>
+                    <li>&Uuml;r&uuml;ne stok eklemek i&ccedil;in Stok Hareketleri sekmesini kullanın.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const skuInput = document.getElementById('sku');
+            const generateButton = document.getElementById('generateSkuBtn');
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+
+            const toggleQuickCategoryBtn = document.getElementById('toggleQuickCategoryBtn');
+            const quickCategoryPanel = document.getElementById('quickCategoryPanel');
+            const quickCategoryName = document.getElementById('quickCategoryName');
+            const quickCategoryDescription = document.getElementById('quickCategoryDescription');
+            const saveQuickCategoryBtn = document.getElementById('saveQuickCategoryBtn');
+            const quickCategoryMessage = document.getElementById('quickCategoryMessage');
+            const categorySelect = document.getElementById('categoryId');
+
+            const basePriceInput = document.getElementById('basePrice');
+            const vatRateSelect = document.getElementById('vatRate');
+            const finalPriceInput = document.getElementById('price');
+            const finalPriceDisplayInput = document.getElementById('priceDisplay');
+            const vatPreview = document.getElementById('vatPreview');
+
+            const form = document.querySelector('form[asp-action="Create"]') || document.querySelector('form[action*="Create"]') || document.querySelector('form[method="post"]');
+
+            if (!skuInput || !generateButton) {
+                return;
+            }
+
+            function generateRandomSku() {
+                const randomPart = Math.floor(100000 + Math.random() * 900000);
+                const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+                return `SKU-${datePart}-${randomPart}`;
+            }
+
+            generateButton.addEventListener('click', function () {
+                skuInput.value = generateRandomSku();
+                skuInput.focus();
+            });
+
+            if (toggleQuickCategoryBtn && quickCategoryPanel) {
+                toggleQuickCategoryBtn.addEventListener('click', function () {
+                    quickCategoryPanel.classList.toggle('d-none');
+                });
+            }
+
+            if (saveQuickCategoryBtn && tokenInput && categorySelect) {
+                saveQuickCategoryBtn.addEventListener('click', async function () {
+                    const name = (quickCategoryName?.value || '').trim();
+                    const description = (quickCategoryDescription?.value || '').trim();
+
+                    if (!name) {
+                        if (quickCategoryMessage) {
+                            quickCategoryMessage.className = 'text-danger';
+                            quickCategoryMessage.textContent = 'Kategori adı zorunludur.';
+                        }
+                        return;
+                    }
+
+                    try {
+                        const body = new URLSearchParams();
+                        body.append('name', name);
+                        body.append('description', description);
+
+                        const response = await fetch('@Url.Action("QuickCreateCategory", "Product")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                'RequestVerificationToken': tokenInput.value
+                            },
+                            body: body.toString()
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok || !result.success) {
+                            throw new Error(result.message || 'Kategori eklenemedi.');
+                        }
+
+                        const option = document.createElement('option');
+                        option.value = result.id;
+                        option.text = result.name;
+                        option.selected = true;
+                        categorySelect.appendChild(option);
+
+                        if (quickCategoryName) quickCategoryName.value = '';
+                        if (quickCategoryDescription) quickCategoryDescription.value = '';
+                        if (quickCategoryMessage) {
+                            quickCategoryMessage.className = 'text-success';
+                            quickCategoryMessage.textContent = 'Kategori eklendi ve seçildi.';
+                        }
+                    } catch (error) {
+                        if (quickCategoryMessage) {
+                            quickCategoryMessage.className = 'text-danger';
+                            quickCategoryMessage.textContent = error.message;
+                        }
+                    }
+                });
+            }
+
+            function formatCurrency(value) {
+                return value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function updateVatCalculation() {
+                if (!basePriceInput || !vatRateSelect || !finalPriceInput || !finalPriceDisplayInput || !vatPreview) {
+                    return;
+                }
+
+                const base = parseFloat(basePriceInput.value || '0');
+                const rate = parseFloat(vatRateSelect.value || '0');
+
+                if (Number.isNaN(base) || base < 0) {
+                    finalPriceInput.value = '';
+                    finalPriceDisplayInput.value = '';
+                    vatPreview.textContent = 'Fiyat: 0,00 ₺ | Vergi: 0,00 ₺ | Toplam: 0,00 ₺';
+                    return;
+                }
+
+                const tax = base * (rate / 100);
+                const total = base + tax;
+                finalPriceInput.value = total.toFixed(2);
+                finalPriceDisplayInput.value = `${formatCurrency(total)} ₺`;
+                vatPreview.textContent = `Fiyat: ${formatCurrency(base)} ₺ | Vergi: ${formatCurrency(tax)} ₺ | Toplam: ${formatCurrency(total)} ₺`;
+            }
+
+            if (basePriceInput) {
+                basePriceInput.addEventListener('input', updateVatCalculation);
+            }
+
+            if (vatRateSelect) {
+                vatRateSelect.addEventListener('change', updateVatCalculation);
+            }
+
+            if (form) {
+                form.addEventListener('submit', function () {
+                    updateVatCalculation();
+                });
+            }
+
+            updateVatCalculation();
+        })();
+    </script>
+}
+

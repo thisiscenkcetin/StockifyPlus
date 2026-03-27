@@ -1,0 +1,75 @@
+@{
+    ViewBag.Title = "Kategoriler";
+    var categories = ViewData.Model as List<StockifyPlus.Models.Category> ?? new List<StockifyPlus.Models.Category>();
+}
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2 class="page-title">
+            <i class="fas fa-tags"></i> Kategori Yönetimi
+        </h2>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="@Url.Action("Create", "Category")" class="btn btn-primary btn-custom">
+            <i class="fas fa-plus"></i> Yeni Kategori
+        </a>
+    </div>
+</div>
+
+@if (categories.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Kategori Adı</th>
+                    <th>Açıklama</th>
+                    <th>Ürün Sayısı</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var category in categories)
+                {
+                    <tr>
+                        <td>@category.Id</td>
+                        <td><strong>@category.Name</strong></td>
+                        <td>@(string.IsNullOrEmpty(category.Description) ? "-" : category.Description)</td>
+                        <td>
+                            <span class="badge bg-info">@(category.Products?.Count(p => p.IsActive) ?? 0) ürün</span>
+                        </td>
+                        <td>
+                            @if (category.IsActive)
+                            {
+                                <span class="badge bg-success">Aktif</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Pasif</span>
+                            }
+                        </td>
+                        <td>
+                            <a href="@Url.Action("Edit", "Category", new { id = category.Id })" 
+                               class="btn btn-sm btn-warning btn-custom">
+                                <i class="fas fa-edit"></i> Düzenle
+                            </a>
+                            <a href="@Url.Action("Delete", "Category", new { id = category.Id })" 
+                               class="btn btn-sm btn-danger btn-custom">
+                                <i class="fas fa-trash"></i> Sil
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Henüz kategori oluşturulmamış. 
+        <a href="@Url.Action("Create", "Category")">Yeni kategori oluşturmak için tıklayın.</a>
+    </div>
+}

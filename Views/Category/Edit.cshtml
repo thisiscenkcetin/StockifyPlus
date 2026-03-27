@@ -1,0 +1,88 @@
+@{
+    var category = ViewData.Model as StockifyPlus.Models.Category;
+    ViewBag.Title = "Kategori Düzenle";
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit"></i> Kategori Düzenle
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="Edit">
+                    @Html.AntiForgeryToken()
+                    
+                    <input type="hidden" name="id" value="@category.Id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Kategori ID</label>
+                        <input type="text" class="form-control" value="@category.Id" disabled>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Kategori Adı <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="@category.Name" required>
+                        @if (ViewData.ModelState.ContainsKey("name") && ViewData.ModelState["name"].Errors.Count > 0)
+                        {
+                            <small class="text-danger">@ViewData.ModelState["name"].Errors[0].ErrorMessage</small>
+                        }
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">@category.Description</textarea>
+                    </div>
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var modelState in ViewData.ModelState.Values)
+                            {
+                                @foreach (var error in modelState.Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                            }
+                        </div>
+                    }
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning btn-custom">
+                            <i class="fas fa-save"></i> Güncelle
+                        </button>
+                        <a href="@Url.Action("Index", "Category")" class="btn btn-secondary btn-custom">
+                            <i class="fas fa-times"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Kategori Bilgileri
+                </h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Ürün Sayısı:</strong> <span class="badge bg-primary">@category.Products.Count</span></p>
+                <p><strong>Durum:</strong> 
+                    @if (category.IsActive)
+                    {
+                        <span class="badge bg-success">Aktif</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Pasif</span>
+                    }
+                </p>
+                <p><strong>Oluşturma Tarihi:</strong> @category.CreatedDate.ToString("dd.MM.yyyy HH:mm")</p>
+            </div>
+        </div>
+    </div>
+</div>

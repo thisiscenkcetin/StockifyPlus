@@ -1,0 +1,87 @@
+@{
+    ViewBag.Title = "Kayıt Ol";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+<section class="auth-card">
+    <div class="auth-card-header" style="background: linear-gradient(120deg, #1d976c, #2bb673);">
+        <i class="fas fa-user-plus me-2"></i> Yeni Hesap Oluştur
+    </div>
+    <div class="auth-card-body">
+        <form method="post" asp-action="Register">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label for="username" class="form-label fw-semibold">Kullanıcı Adı <span class="text-danger">*</span></label>
+                <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                    <input type="text" class="form-control" id="username" name="username"
+                           required placeholder="Kullanıcı adı (3-20 karakter)" autocomplete="username" />
+                </div>
+                <small class="form-text text-muted">En az 3 karakterden oluşmalıdır.</small>
+            </div>
+
+            <div class="mb-3">
+                <label for="fullName" class="form-label fw-semibold">Ad ve Soyadı <span class="text-danger">*</span></label>
+                <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                    <input type="text" class="form-control" id="fullName" name="fullName"
+                           required placeholder="Ad ve soyadınız" autocomplete="name" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label fw-semibold">E-posta <span class="text-danger">*</span></label>
+                <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="email" class="form-control" id="email" name="email"
+                           required placeholder="ornek@example.com" autocomplete="email" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label fw-semibold">Şifre <span class="text-danger">*</span></label>
+                <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password"
+                           required placeholder="Şifre (en az 8 karakter)" autocomplete="new-password" />
+                </div>
+                <small class="form-text text-muted">Gereksinimler: En az 8 karakter, büyük harf, küçük harf, rakam</small>
+            </div>
+
+            <div class="mb-3">
+                <label for="confirmPassword" class="form-label fw-semibold">Şifre Tekrarı <span class="text-danger">*</span></label>
+                <div class="input-group auth-input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                           required placeholder="Şifrenizi tekrarlayın" autocomplete="new-password" />
+                </div>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger py-2">
+                    @foreach (var modelState in ViewData.ModelState.Values)
+                    {
+                        @foreach (var error in modelState.Errors)
+                        {
+                            <div>@error.ErrorMessage</div>
+                        }
+                    }
+                </div>
+            }
+
+            <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
+                <i class="fas fa-user-plus me-1"></i> Kayıt Ol
+            </button>
+        </form>
+
+        <hr class="auth-divider" />
+
+        <p class="text-center text-muted mb-2">Zaten hesabınız var mı?</p>
+        <a href="@Url.Action("Login", "Account")" class="btn btn-primary w-100 py-2 fw-semibold">
+            <i class="fas fa-right-to-bracket me-1"></i> Giriş Yap
+        </a>
+        </div>
+</section>
+</div>

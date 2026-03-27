@@ -1,0 +1,282 @@
+@using Microsoft.AspNetCore.Http
+@{
+    ViewBag.Title = "Dashboard";
+}
+
+<div id="report-content" style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="kpi-label">Kritik Stok</div>
+            <div class="kpi-value">@(ViewData["LowStockProducts"] ?? 0)</div>
+            <div class="kpi-subtext">Dikkat gerektiren</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon">
+                <i class="fas fa-boxes"></i>
+            </div>
+            <div class="kpi-label">Toplam Ürün</div>
+            <div class="kpi-value">@(ViewData["TotalProducts"] ?? 0)</div>
+            <div class="kpi-subtext">Aktif ürünler</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon">
+                <i class="fas fa-arrow-right-arrow-left"></i>
+            </div>
+            <div class="kpi-label">Bugünkü Hareket</div>
+            <div class="kpi-value">@(ViewData["TodayMovements"] ?? 0)</div>
+            <div class="kpi-subtext">İşlem yapılmış</div>
+        </div>
+    </div>
+
+    <!-- Grafik paneli -->
+    <div class="chart-container">
+        <div class="chart-title d-flex align-items-center justify-content-between gap-2 flex-wrap">
+            <span><i class="fas fa-chart-area"></i> Haftalık Stok Trendi</span>
+            <button id="downloadReportBtn" type="button" class="btn btn-sm text-white"
+                    style="background: linear-gradient(135deg, #2f3542 0%, #4a4f5e 100%); border: 0; border-radius: 999px; padding: 0.45rem 0.9rem; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);"
+                    title="PDF Raporu İndir">
+                <i class="fas fa-file-pdf me-1"></i> PDF Raporu İndir
+            </button>
+        </div>
+        <div style="position: relative; flex: 1; min-height: 300px;">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Hizli islemler ve aktivite alani -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+    <div class="quick-actions">
+        <div style="font-weight: 600; color: #222; margin-bottom: 0.5rem;">
+            <i class="fas fa-lightning-bolt" style="color: var(--primary); margin-right: 0.5rem;"></i>Hızlı İşlemler
+        </div>
+        <a href="@Url.Action("Create", "Product")" class="action-btn action-btn-primary">
+            <i class="fas fa-plus"></i> Yeni Ürün
+        </a>
+        <a href="@Url.Action("StockOut", "StockMovement")" class="action-btn action-btn-primary">
+            <i class="fas fa-minus"></i> Stok Düş
+        </a>
+        <a href="@Url.Action("StockIn", "StockMovement")" class="action-btn action-btn-primary">
+            <i class="fas fa-barcode"></i> Barkod Oku
+        </a>
+        <a href="@Url.Action("Index", "NotificationSettings")" class="action-btn action-btn-primary">
+            <i class="fas fa-bell"></i> Stok Bildirimi
+        </a>
+    </div>
+
+    <div class="activity-log">
+        <div class="activity-title">
+            <i class="fas fa-list"></i> Son Hareketler
+        </div>
+        <div class="activity-list" id="activityList">
+            <div class="activity-item">
+                <strong>Yükleniyor...</strong>
+                <div class="activity-time">Son hareketler getiriliyor</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" referrerpolicy="no-referrer"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const activityList = document.getElementById('activityList');
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+        const reportContent = document.getElementById('report-content');
+
+        function buildReportFileName() {
+            const now = new Date();
+            const pad = (value) => String(value).padStart(2, '0');
+            const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+            return `StockifyPlus_Rapor_${stamp}.pdf`;
+        }
+
+        async function downloadPdfReport() {
+            if (!reportContent || !window.html2pdf) {
+                alert('PDF raporu olusturulamadi. Lutfen sayfayi yenileyip tekrar deneyin.');
+                return;
+            }
+
+            const chartCanvas = document.getElementById('trendChart');
+            if (!chartCanvas) {
+                alert('Grafik alani bulunamadi.');
+                return;
+            }
+
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+
+            const rect = reportContent.getBoundingClientRect();
+            const orientation = rect.width > rect.height ? 'landscape' : 'portrait';
+            const options = {
+                margin: [10, 10, 10, 10],
+                filename: buildReportFileName(),
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation
+                },
+                pagebreak: {
+                    mode: ['css', 'legacy']
+                }
+            };
+
+            downloadReportBtn.disabled = true;
+            const originalLabel = downloadReportBtn.innerHTML;
+            downloadReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Hazirlaniyor...';
+
+            try {
+                await html2pdf().set(options).from(reportContent).save();
+            } catch (error) {
+                alert('PDF olusturma sirasinda bir hata olustu.');
+            } finally {
+                downloadReportBtn.disabled = false;
+                downloadReportBtn.innerHTML = originalLabel;
+            }
+        }
+
+        if (downloadReportBtn) {
+            downloadReportBtn.addEventListener('click', downloadPdfReport);
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatRelativeTime(dateString) {
+            const eventDate = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - eventDate;
+
+            if (Number.isNaN(eventDate.getTime())) {
+                return '-';
+            }
+
+            const minutes = Math.floor(diffMs / 60000);
+            const hours = Math.floor(diffMs / 3600000);
+            const days = Math.floor(diffMs / 86400000);
+
+            if (minutes < 1) return 'Az önce';
+            if (minutes < 60) return `${minutes} dakika önce`;
+            if (hours < 24) return `${hours} saat önce`;
+            if (days === 1) return 'Dün';
+            return `${days} gün önce`;
+        }
+
+        function renderActivities(items) {
+            if (!activityList) return;
+
+            if (!items || items.length === 0) {
+                activityList.innerHTML = `
+                    <div class="activity-item">
+                        <strong>Henüz hareket yok</strong>
+                        <div class="activity-time">Yeni kayıtlar burada görünecek</div>
+                    </div>`;
+                return;
+            }
+
+            activityList.innerHTML = items.map(item => `
+                <div class="activity-item">
+                    <strong>${escapeHtml(item.title)}:</strong> ${escapeHtml(item.detail)}
+                    <div class="activity-time">${formatRelativeTime(item.time)}</div>
+                </div>
+            `).join('');
+        }
+
+        async function loadRecentActivities() {
+            try {
+                const response = await fetch('@Url.Action("RecentActivities", "Home")?take=8', {
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Aktivite verileri alınamadı');
+                }
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.message || 'Aktivite verileri alınamadı');
+                }
+
+                renderActivities(result.items);
+            } catch (error) {
+                if (activityList) {
+                    activityList.innerHTML = `
+                        <div class="activity-item">
+                            <strong>Bağlantı hatası</strong>
+                            <div class="activity-time">Son hareketler alınamadı</div>
+                        </div>`;
+                }
+            }
+        }
+
+        loadRecentActivities();
+        setInterval(loadRecentActivities, 10000);
+
+        const trendCtx = document.getElementById('trendChart');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'],
+                    datasets: [
+                        {
+                            label: 'Stok Seviyesi',
+                            data: [120, 135, 128, 142, 155, 168, 156],
+                            borderColor: '#1e88e5',
+                            backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#1e88e5',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
