@@ -2,6 +2,11 @@
 
 StockifyPlus is a graduation project developed at Trakya University, Tunca Vocational School, Web Design and Coding Program. Proje, ASP.NET Core MVC ve Entity Framework (Code-First) yaklaşımı ile web tabanlı stok/depo takibi için tasarlanmıştır.
 
+<p align="center">
+  <img src="https://github.com/thisiscenkcetin/StockifyPlus/blob/main/wwwroot/images/Stockify.jpg?raw=true" alt="StockifyPlus Dashboard" width="100%">
+</p>
+
+
 ## Core Capabilities / Temel Yetenekler
 
 Planlanan modül yapısında aşağıdaki yetenekler merkeze alınmıştır:
