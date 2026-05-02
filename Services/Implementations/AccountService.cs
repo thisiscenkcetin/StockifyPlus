@@ -10,10 +10,12 @@ namespace StockifyPlus.Services.Implementations
     public class AccountService : IAccountService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILogger<AccountService> _logger;
 
-        public AccountService(IUnitOfWork unitOfWork)
+        public AccountService(IUnitOfWork unitOfWork, ILogger<AccountService> logger)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<AppUser> RegisterAsync(string username, string password, string fullName, string email, UserRole role)
@@ -74,7 +76,14 @@ namespace StockifyPlus.Services.Implementations
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            await UpdateLastLoginAsync(user.Id);
+            try
+            {
+                await UpdateLastLoginAsync(user.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Last login date could not be updated for user {UserId}. Login will continue.", user.Id);
+            }
 
             return user;
         }
