@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 using StockifyPlus.Services.Interfaces;
 using StockifyPlus.Exceptions;
 using StockifyPlus.Models.Enums;
@@ -96,6 +98,12 @@ namespace StockifyPlus.Controllers
             catch (NotFoundException)
             {
                 ModelState.AddModelError("", "Kullanıcı adı veya şifre hatalı.");
+                return View();
+            }
+            catch (Exception ex) when (ex is DbException || ex is DbUpdateException || ex.GetBaseException() is DbException)
+            {
+                _logger.LogError(ex, "Database error during login");
+                ModelState.AddModelError("", "Veritabanı bağlantısı sırasında hata oluştu. Lütfen bağlantı ayarlarını kontrol edin.");
                 return View();
             }
             catch (Exception ex)
