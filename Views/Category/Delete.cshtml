@@ -1,0 +1,60 @@
+@{
+    var category = ViewData.Model as StockifyPlus.Models.Category;
+    ViewBag.Title = "Kategoriyi Sil";
+}
+
+<div class="sp-page-shell sp-delete-page">
+    <div class="sp-danger-card sp-delete-confirmation">
+        <div class="sp-delete-header">
+            <span class="sp-delete-icon" aria-hidden="true">
+                <i class="fas fa-trash"></i>
+            </span>
+            <div>
+                <h2>Kategoriyi Sil</h2>
+                <p>Bu kategori pasif duruma alınacak ve aktif listelerde görünmeyecek.</p>
+            </div>
+        </div>
+
+        <div class="sp-delete-body">
+            <div class="sp-delete-warning" role="alert">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <div>
+                    <strong>Dikkat</strong>
+                    <span>Bu işlem geri alınamaz. Devam etmeden önce kategori bilgilerini kontrol edin.</span>
+                </div>
+            </div>
+
+            <div class="sp-delete-question">
+                <h3>Bu kategorinin silinmesini onaylıyor musunuz?</h3>
+                <p>Silme işlemi kategoriyi sistemde pasif hale getirir.</p>
+            </div>
+
+            <div class="sp-delete-summary">
+                <div class="sp-delete-summary-row">
+                    <span>Adı</span>
+                    <strong>@category?.Name</strong>
+                </div>
+                <div class="sp-delete-summary-row">
+                    <span>Açıklama</span>
+                    <strong>@(string.IsNullOrEmpty(category?.Description) ? "-" : category.Description)</strong>
+                </div>
+                <div class="sp-delete-summary-row">
+                    <span>İçinde ürün</span>
+                    <strong>@(category?.Products?.Count ?? 0) adet</strong>
+                </div>
+            </div>
+
+            <form method="post" asp-action="Delete" class="sp-delete-actions">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@category?.Id">
+
+                <button type="submit" class="btn btn-danger btn-custom">
+                    <i class="fas fa-trash"></i> Evet, Sil
+                </button>
+                <a href="@Url.Action("Index", "Category")" class="btn btn-secondary btn-custom">
+                    <i class="fas fa-times"></i> İptal
+                </a>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,484 @@
+<div class="modal fade" id="barcodeScannerModal" tabindex="-1" aria-labelledby="barcodeScannerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content sp-scanner-modal">
+            <div class="modal-header sp-scanner-header">
+                <div>
+                    <h5 class="modal-title" id="barcodeScannerModalLabel">
+                        <i class="fas fa-camera me-2"></i>Barkod / QR Kod Oku
+                    </h5>
+                    <small>Ürün barkodunu kameraya gösterin veya görselden okutun.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body sp-scanner-body">
+                <div class="sp-scanner-stage">
+                    <div id="reader" class="sp-reader-frame" aria-label="Kamera barkod okuyucu">
+                        <video id="barcodeVideo" muted playsinline></video>
+                    </div>
+                    <div class="sp-scanner-reticle" aria-hidden="true">
+                        <span></span>
+                    </div>
+                    <div class="sp-scanner-state" id="scannerState">
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        <span>Kamera hazırlanıyor...</span>
+                    </div>
+                </div>
+                <div class="sp-scanner-actions">
+                    <button type="button" class="btn sp-btn sp-btn-primary" id="scannerStartBtn">
+                        <i class="fas fa-video"></i> Kamerayı Başlat
+                    </button>
+                    <label class="btn sp-btn sp-btn-secondary mb-0" for="barcodeImageInput">
+                        <i class="fas fa-image"></i> Görselden Oku
+                    </label>
+                    <input type="file" id="barcodeImageInput" accept="image/*" class="visually-hidden">
+                </div>
+                <small class="text-muted d-block mt-3">
+                    İpucu: Barkodu çerçevenin içine alın, telefonu veya ürünü sabit tutun. Okuma başarılı olursa ürün otomatik seçilir.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3 sp-toast-container">
+    <div id="scanToast" class="toast align-items-center text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="scanToastBody">Barkod başarıyla okundu.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Kapat"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/@@zxing/library@latest/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script>
+    (() => {
+        const barcodeEndpoint = '@Url.Action("GetProductByBarcode", "Product")';
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        const productSelect = document.getElementById('productId');
+        const modalElement = document.getElementById('barcodeScannerModal');
+        const readerElement = document.getElementById('reader');
+        const videoElement = document.getElementById('barcodeVideo');
+        const scannerState = document.getElementById('scannerState');
+        const scannerStartBtn = document.getElementById('scannerStartBtn');
+        const imageInput = document.getElementById('barcodeImageInput');
+        const scanToastElement = document.getElementById('scanToast');
+        const scanToastBody = document.getElementById('scanToastBody');
+
+        if (!modalElement || !readerElement || !productSelect) {
+            return;
+        }
+
+        const scanToast = new bootstrap.Toast(scanToastElement, { delay: 2600 });
+        let codeReader = null;
+        let isRunning = false;
+        let isResolving = false;
+        let nativeFrameTimer = null;
+
+        function notify(message, isError = false) {
+            scanToastBody.textContent = message;
+            scanToastElement.classList.toggle('text-bg-success', !isError);
+            scanToastElement.classList.toggle('text-bg-danger', isError);
+            scanToast.show();
+        }
+
+        function setScannerState(message, mode = 'loading') {
+            const icons = {
+                loading: 'fas fa-circle-notch fa-spin',
+                ready: 'fas fa-barcode',
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle'
+            };
+
+            scannerState.classList.toggle('sp-scanner-state-error', mode === 'error');
+            scannerState.classList.toggle('sp-scanner-state-success', mode === 'success');
+            scannerState.innerHTML = `<i class="${icons[mode] || icons.ready}"></i><span>${message}</span>`;
+        }
+
+        function buildHints() {
+            const zxing = window.ZXing;
+            const hints = new Map();
+            const formats = [
+                zxing.BarcodeFormat.CODE_128,
+                zxing.BarcodeFormat.CODE_39,
+                zxing.BarcodeFormat.CODE_93,
+                zxing.BarcodeFormat.EAN_13,
+                zxing.BarcodeFormat.EAN_8,
+                zxing.BarcodeFormat.UPC_A,
+                zxing.BarcodeFormat.UPC_E,
+                zxing.BarcodeFormat.ITF,
+                zxing.BarcodeFormat.CODABAR,
+                zxing.BarcodeFormat.QR_CODE
+            ].filter(format => format !== undefined);
+
+            hints.set(zxing.DecodeHintType.POSSIBLE_FORMATS, formats);
+            hints.set(zxing.DecodeHintType.TRY_HARDER, true);
+            return hints;
+        }
+
+        function ensureReader() {
+            if (!codeReader) {
+                codeReader = new ZXing.BrowserMultiFormatReader(buildHints(), 180);
+            }
+
+            return codeReader;
+        }
+
+        async function detectWithNativeBarcodeDetector(source) {
+            if (!('BarcodeDetector' in window)) {
+                return '';
+            }
+
+            try {
+                const supportedFormats = await BarcodeDetector.getSupportedFormats();
+                const preferredFormats = [
+                    'code_128',
+                    'code_39',
+                    'code_93',
+                    'ean_13',
+                    'ean_8',
+                    'upc_a',
+                    'upc_e',
+                    'itf',
+                    'codabar',
+                    'qr_code'
+                ].filter(format => supportedFormats.includes(format));
+
+                if (preferredFormats.length === 0) {
+                    return '';
+                }
+
+                const detector = new BarcodeDetector({ formats: preferredFormats });
+                const results = await detector.detect(source);
+                return results?.[0]?.rawValue || '';
+            } catch {
+                return '';
+            }
+        }
+
+        async function stopScanner() {
+            if (nativeFrameTimer) {
+                window.clearInterval(nativeFrameTimer);
+                nativeFrameTimer = null;
+            }
+
+            if (!codeReader) {
+                isRunning = false;
+                return;
+            }
+
+            codeReader.reset();
+            if (videoElement) {
+                videoElement.pause();
+                videoElement.removeAttribute('src');
+                videoElement.srcObject = null;
+                videoElement.load();
+            }
+            isRunning = false;
+        }
+
+        function startNativeVideoLoop() {
+            if (!('BarcodeDetector' in window) || nativeFrameTimer || !videoElement) {
+                return;
+            }
+
+            nativeFrameTimer = window.setInterval(async () => {
+                if (!isRunning || isResolving || videoElement.readyState < 2) {
+                    return;
+                }
+
+                const decodedText = await detectWithNativeBarcodeDetector(videoElement);
+                if (decodedText) {
+                    resolveBarcode(decodedText);
+                }
+            }, 350);
+        }
+
+        async function resolveBarcode(decodedText) {
+            const barcode = String(decodedText || '').trim();
+            if (!barcode || isResolving) return;
+
+            isResolving = true;
+            setScannerState('Barkod okundu, ürün aranıyor...', 'success');
+
+            if (navigator.vibrate) {
+                navigator.vibrate(120);
+            }
+
+            try {
+                const response = await fetch(barcodeEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': tokenInput ? tokenInput.value : ''
+                    },
+                    body: JSON.stringify({ barcode })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    notify(result.message || `Bu barkoda ait ürün bulunamadı: ${barcode}`, true);
+                    setScannerState('Ürün bulunamadı. Tekrar okutabilirsiniz.', 'error');
+                    isResolving = false;
+                    return;
+                }
+
+                productSelect.value = String(result.id);
+                productSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                notify(`${result.name} seçildi (Stok: ${result.currentStock}).`);
+                bootstrap.Modal.getOrCreateInstance(modalElement).hide();
+                await stopScanner();
+            } catch {
+                notify('Barkod doğrulama sırasında sunucu hatası oluştu.', true);
+                setScannerState('Sunucu hatası oluştu. Tekrar deneyin.', 'error');
+            } finally {
+                isResolving = false;
+            }
+        }
+
+        async function startCamera() {
+            if (!window.ZXing?.BrowserMultiFormatReader) {
+                setScannerState('Barkod okuyucu yüklenemedi. İnternet bağlantısını kontrol edin.', 'error');
+                return;
+            }
+
+            if (isRunning) {
+                return;
+            }
+
+            setScannerState('Kamera izni bekleniyor...', 'loading');
+            scannerStartBtn.disabled = true;
+
+            try {
+                const reader = ensureReader();
+                const cameras = await reader.listVideoInputDevices();
+                if (!cameras || cameras.length === 0) {
+                    setScannerState('Kamera bulunamadı. Görselden okuma seçeneğini kullanabilirsiniz.', 'error');
+                    return;
+                }
+
+                const backCamera = cameras.find(camera => /back|rear|environment|arka/i.test(camera.label || ''));
+                const cameraId = (backCamera || cameras[0]).deviceId;
+                await reader.decodeFromVideoDevice(cameraId, videoElement, (result) => {
+                    if (result && !isResolving) {
+                        resolveBarcode(result.getText());
+                    }
+                });
+                isRunning = true;
+                startNativeVideoLoop();
+                setScannerState('Okuma aktif. Barkodu çerçeveye hizalayın.', 'ready');
+            } catch (error) {
+                console.error('Barkod kamera hatası:', error);
+                setScannerState('Kamera başlatılamadı. İzni kontrol edin veya görselden okutun.', 'error');
+            } finally {
+                scannerStartBtn.disabled = false;
+            }
+        }
+
+        function loadImageFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const image = new Image();
+                const url = URL.createObjectURL(file);
+
+                image.onload = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(image);
+                };
+
+                image.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Görsel yüklenemedi.'));
+                };
+
+                image.src = url;
+            });
+        }
+
+        async function createEnhancedImageDataUrl(file) {
+            const image = await loadImageFromFile(file);
+            const scale = Math.max(4, Math.ceil(1400 / Math.max(image.naturalWidth, 1)));
+            const padding = 140;
+            const width = Math.max(1, image.naturalWidth * scale);
+            const height = Math.max(1, image.naturalHeight * scale);
+            const canvas = document.createElement('canvas');
+            canvas.width = width + (padding * 2);
+            canvas.height = height + (padding * 2);
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+
+            context.imageSmoothingEnabled = false;
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, padding, padding, width, height);
+
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let index = 0; index < data.length; index += 4) {
+                const gray = (data[index] * 0.299) + (data[index + 1] * 0.587) + (data[index + 2] * 0.114);
+                const value = gray < 172 ? 0 : 255;
+                data[index] = value;
+                data[index + 1] = value;
+                data[index + 2] = value;
+                data[index + 3] = 255;
+            }
+            context.putImageData(imageData, 0, 0);
+
+            return canvas.toDataURL('image/png');
+        }
+
+        async function createEnhancedImageBitmap(file) {
+            const image = await loadImageFromFile(file);
+            const scale = Math.max(4, Math.ceil(1400 / Math.max(image.naturalWidth, 1)));
+            const padding = 140;
+            const width = Math.max(1, image.naturalWidth * scale);
+            const height = Math.max(1, image.naturalHeight * scale);
+            const canvas = document.createElement('canvas');
+            canvas.width = width + (padding * 2);
+            canvas.height = height + (padding * 2);
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+
+            context.imageSmoothingEnabled = false;
+            context.fillStyle = '#ffffff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, padding, padding, width, height);
+
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let index = 0; index < data.length; index += 4) {
+                const gray = (data[index] * 0.299) + (data[index + 1] * 0.587) + (data[index + 2] * 0.114);
+                const value = gray < 184 ? 0 : 255;
+                data[index] = value;
+                data[index + 1] = value;
+                data[index + 2] = value;
+                data[index + 3] = 255;
+            }
+            context.putImageData(imageData, 0, 0);
+
+            return createImageBitmap(canvas);
+        }
+
+        function decodeWithQuagga(src) {
+            return new Promise((resolve) => {
+                if (!window.Quagga) {
+                    resolve('');
+                    return;
+                }
+
+                Quagga.decodeSingle({
+                    src,
+                    numOfWorkers: 0,
+                    locate: true,
+                    locator: {
+                        patchSize: 'medium',
+                        halfSample: false
+                    },
+                    decoder: {
+                        readers: [
+                            'code_128_reader',
+                            'code_39_reader',
+                            'code_93_reader',
+                            'ean_reader',
+                            'ean_8_reader',
+                            'upc_reader',
+                            'upc_e_reader',
+                            'i2of5_reader',
+                            'codabar_reader'
+                        ],
+                        multiple: false
+                    }
+                }, (result) => {
+                    resolve(result?.codeResult?.code || '');
+                });
+            });
+        }
+
+        async function scanImage(file) {
+            if (!file) return;
+
+            if (!window.ZXing?.BrowserMultiFormatReader) {
+                setScannerState('Barkod okuyucu yüklenemedi. Sayfayı yenileyip tekrar deneyin.', 'error');
+                notify('Barkod okuyucu yüklenemedi.', true);
+                return;
+            }
+
+            setScannerState('Görsel taranıyor...', 'loading');
+
+            try {
+                await stopScanner();
+                const reader = ensureReader();
+                let decodedText = '';
+
+                if ('createImageBitmap' in window) {
+                    const bitmap = await createImageBitmap(file);
+                    decodedText = await detectWithNativeBarcodeDetector(bitmap);
+                    bitmap.close?.();
+                }
+
+                if (!decodedText && 'createImageBitmap' in window) {
+                    const enhancedBitmap = await createEnhancedImageBitmap(file);
+                    decodedText = await detectWithNativeBarcodeDetector(enhancedBitmap);
+                    enhancedBitmap.close?.();
+                }
+
+                const fileUrl = URL.createObjectURL(file);
+
+                if (!decodedText) {
+                    try {
+                        decodedText = reader.decodeFromImageUrl
+                        ? (await reader.decodeFromImageUrl(fileUrl)).getText()
+                        : '';
+                    } catch {
+                        decodedText = '';
+                    } finally {
+                        URL.revokeObjectURL(fileUrl);
+                    }
+                } else {
+                    URL.revokeObjectURL(fileUrl);
+                }
+
+                if (!decodedText) {
+                    const quaggaUrl = URL.createObjectURL(file);
+                    try {
+                        decodedText = await decodeWithQuagga(quaggaUrl);
+                    } finally {
+                        URL.revokeObjectURL(quaggaUrl);
+                    }
+                }
+
+                if (!decodedText) {
+                    const enhancedUrl = await createEnhancedImageDataUrl(file);
+                    try {
+                        decodedText = (await reader.decodeFromImageUrl(enhancedUrl)).getText();
+                    } catch {
+                        decodedText = '';
+                    }
+
+                    if (!decodedText) {
+                        decodedText = await decodeWithQuagga(enhancedUrl);
+                    }
+                }
+
+                await resolveBarcode(decodedText);
+            } catch (error) {
+                console.error('Barkod görsel okuma hatası:', error);
+                setScannerState('Görselde barkod okunamadı. Barkodu yatay, net ve kırpılmamış şekilde yükleyin.', 'error');
+                notify('Görselde barkod okunamadı.', true);
+            } finally {
+                imageInput.value = '';
+            }
+        }
+
+        modalElement.addEventListener('shown.bs.modal', () => {
+            setScannerState('Kamera hazırlanıyor...', 'loading');
+            startCamera();
+        });
+
+        modalElement.addEventListener('hidden.bs.modal', async () => {
+            await stopScanner();
+            setScannerState('Kamera kapatıldı.', 'ready');
+        });
+
+        scannerStartBtn.addEventListener('click', startCamera);
+        imageInput.addEventListener('change', (event) => scanImage(event.target.files?.[0]));
+    })();
+</script>

@@ -1,0 +1,243 @@
+@model IEnumerable<StockifyPlus.Models.Wishlist>
+@{
+    ViewBag.Title = "Talep Havuzu";
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="sp-page-shell">
+    <div class="sp-page-header">
+        <h2 class="sp-page-title">
+            <i class="fas fa-clipboard-list"></i> @ViewBag.Title
+        </h2>
+        <a href="@Url.Action("Create", "Wishlist")" class="btn btn-primary btn-custom">
+            <i class="fas fa-plus"></i> Yeni İstek Ekle
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="sp-empty-state">
+            <div>
+                <i class="fas fa-clipboard-list"></i>
+                <div>Henüz istek eklemediniz</div>
+                <a href="@Url.Action("Create", "Wishlist")">Yeni istek ekle</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive sp-table-wrap d-none d-md-block">
+            <table class="table table-hover sp-table">
+                <thead>
+                    <tr>
+                        <th>Ürün</th>
+                        <th>Hedef</th>
+                        <th>Mevcut</th>
+                        <th>Öncelik</th>
+                        <th>Kategori</th>
+                        <th>Tarih</th>
+                        <th class="text-center">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var priorityBadgeClass = item.Priority switch
+                        {
+                            1 => "bg-info",
+                            2 => "bg-warning",
+                            3 => "bg-orange",
+                            4 => "bg-danger",
+                            _ => "bg-secondary"
+                        };
+                        var priorityLabel = item.Priority switch
+                        {
+                            1 => "Düşük",
+                            2 => "Orta",
+                            3 => "Yüksek",
+                            4 => "Acil",
+                            _ => "Bilinmiyor"
+                        };
+                        var purchasedClass = item.IsPurchased ? "opacity-75 text-decoration-line-through" : "";
+
+                        <tr class="@purchasedClass">
+                            <td>
+                                <strong>@item.ProductName</strong>
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <small class="d-block sp-muted">@item.Description</small>
+                                }
+                                @if (item.IsPurchased)
+                                {
+                                    <span class="badge bg-success mt-1">
+                                        <i class="fas fa-check"></i> Satın Alındı
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @(item.TargetPrice.HasValue ? $"{item.TargetPrice.Value.ToString("N2", trCulture)} ₺" : "Belirlenmemiş")
+                            </td>
+                            <td>
+                                @if (item.CurrentPrice.HasValue)
+                                {
+                                    <span>@item.CurrentPrice.Value.ToString("N2", trCulture) ₺</span>
+                                    @if (item.TargetPrice.HasValue)
+                                    {
+                                        var difference = ((item.CurrentPrice.Value - item.TargetPrice.Value) / item.TargetPrice.Value) * 100;
+                                        var badgeClass = item.CurrentPrice <= item.TargetPrice ? "bg-success" : "bg-secondary";
+                                        <span class="badge @badgeClass ms-1">@difference.ToString("F1", trCulture)%</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="sp-muted">Fiyat yok</span>
+                                }
+                            </td>
+                            <td><span class="badge @priorityBadgeClass">@priorityLabel</span></td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(item.Category))
+                                {
+                                    <span><i class="fas fa-tag text-primary"></i> @item.Category</span>
+                                }
+                                else
+                                {
+                                    <span class="sp-muted">Kategorisiz</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.ProductUrl))
+                                {
+                                    <a href="@item.ProductUrl" target="_blank" rel="noopener noreferrer" class="d-block product-link" aria-label="@item.ProductName ürün sayfasını yeni sekmede aç">
+                                        <i class="fas fa-external-link-alt"></i> Link
+                                    </a>
+                                }
+                            </td>
+                            <td>
+                                @item.CreatedDate.ToString("dd.MM.yyyy", trCulture)
+                                @if (item.LastUpdatedDate.HasValue)
+                                {
+                                    <small class="d-block sp-muted">@item.LastUpdatedDate.Value.ToString("dd.MM.yyyy HH:mm", trCulture)</small>
+                                }
+                            </td>
+                            <td>
+                                <div class="sp-action-cluster justify-content-center">
+                                    <a href="@Url.Action("Edit", "Wishlist", new { id = item.Id })" class="btn btn-sm btn-warning" title="Düzenle" aria-label="@item.ProductName düzenle">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    @if (!item.IsPurchased)
+                                    {
+                                        <form method="post" asp-action="MarkAsPurchased" asp-route-id="@item.Id" class="m-0">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-success" title="Satın alındı" aria-label="@item.ProductName satın alındı olarak işaretle">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    <form method="post" asp-action="Delete" asp-route-id="@item.Id" class="m-0" onsubmit="return confirm('Bu isteği silmek istediğinize emin misiniz?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Sil" aria-label="@item.ProductName sil">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="wishlist-cards d-md-none">
+            @foreach (var item in Model)
+            {
+                var priorityBadgeClass = item.Priority switch
+                {
+                    1 => "bg-info",
+                    2 => "bg-warning",
+                    3 => "bg-orange",
+                    4 => "bg-danger",
+                    _ => "bg-secondary"
+                };
+                var priorityLabel = item.Priority switch
+                {
+                    1 => "Düşük",
+                    2 => "Orta",
+                    3 => "Yüksek",
+                    4 => "Acil",
+                    _ => "Bilinmiyor"
+                };
+
+                <article class="wishlist-card @(item.IsPurchased ? "purchased" : "")">
+                    <div class="d-flex justify-content-between gap-2 align-items-start">
+                        <div>
+                            <h5 class="mb-1 @(item.IsPurchased ? "text-decoration-line-through" : "")">@item.ProductName</h5>
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <p class="sp-muted mb-2">@item.Description</p>
+                            }
+                        </div>
+                        <span class="badge @priorityBadgeClass">@priorityLabel</span>
+                    </div>
+
+                    @if (item.IsPurchased)
+                    {
+                        <span class="badge bg-success mb-2">
+                            <i class="fas fa-check"></i> Satın Alındı
+                        </span>
+                    }
+
+                    <div class="sp-detail-grid mb-3">
+                        <div class="sp-detail-item">
+                            <span class="sp-detail-label">Hedef</span>
+                            <span class="sp-detail-value">@(item.TargetPrice.HasValue ? $"{item.TargetPrice.Value.ToString("N2", trCulture)} ₺" : "Belirlenmemiş")</span>
+                        </div>
+                        <div class="sp-detail-item">
+                            <span class="sp-detail-label">Mevcut</span>
+                            <span class="sp-detail-value">@(item.CurrentPrice.HasValue ? $"{item.CurrentPrice.Value.ToString("N2", trCulture)} ₺" : "Yok")</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        @if (!string.IsNullOrWhiteSpace(item.Category))
+                        {
+                            <span class="badge bg-secondary"><i class="fas fa-tag"></i> @item.Category</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(item.ProductUrl))
+                        {
+                            <a href="@item.ProductUrl" target="_blank" rel="noopener noreferrer" class="badge bg-primary text-decoration-none">
+                                <i class="fas fa-external-link-alt"></i> Link
+                            </a>
+                        }
+                    </div>
+
+                    <small class="sp-muted d-block mb-3">
+                        Oluşturulma: @item.CreatedDate.ToString("dd.MM.yyyy", trCulture)
+                        @if (item.LastUpdatedDate.HasValue)
+                        {
+                            <span class="d-block">Güncelleme: @item.LastUpdatedDate.Value.ToString("dd.MM.yyyy HH:mm", trCulture)</span>
+                        }
+                    </small>
+
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Edit", "Wishlist", new { id = item.Id })" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Düzenle
+                        </a>
+                        @if (!item.IsPurchased)
+                        {
+                            <form method="post" asp-action="MarkAsPurchased" asp-route-id="@item.Id" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-check"></i> Satın Alındı Olarak İşaretle
+                                </button>
+                            </form>
+                        }
+                        <form method="post" asp-action="Delete" asp-route-id="@item.Id" class="m-0" onsubmit="return confirm('Bu isteği silmek istediğinize emin misiniz?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger w-100">
+                                <i class="fas fa-trash"></i> Sil
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>

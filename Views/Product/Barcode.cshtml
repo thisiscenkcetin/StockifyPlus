@@ -1,0 +1,160 @@
+@model StockifyPlus.Models.Product
+@{
+    ViewBag.Title = "Ürün Barkodu";
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="sp-page-shell sp-barcode-page">
+    <div class="sp-form-card sp-barcode-shell">
+        <div class="sp-barcode-header">
+            <div>
+                <span class="sp-page-kicker">Barkod etiketi</span>
+                <h2>@Model.Name</h2>
+                <p>@(Model.Category?.Name ?? "Kategorisiz")</p>
+            </div>
+            <span class="sp-barcode-sku-pill">@Model.SKU</span>
+        </div>
+
+        <div class="sp-barcode-body">
+            <section class="sp-barcode-preview-panel" aria-label="Barkod etiketi önizlemesi">
+                <div class="sp-barcode-print-zone" id="barcodePrintArea">
+                    <div class="sp-label-sheet" id="barcodeLabelSheet"></div>
+                </div>
+            </section>
+
+            <aside class="sp-barcode-controls" aria-label="Yazdırma ayarları">
+                <div class="sp-barcode-product-card">
+                    <span>Ürün</span>
+                    <strong>@Model.Name</strong>
+                    <small>@Model.SKU</small>
+                </div>
+
+                <label class="sp-label-control" for="labelCopyCount">
+                    <span>Etiket adedi</span>
+                    <input type="number" id="labelCopyCount" class="form-control" min="1" max="24" value="1" inputmode="numeric">
+                </label>
+
+                <div class="sp-barcode-control-grid" role="group" aria-label="Etiket adedi">
+                    <button type="button" class="btn btn-secondary btn-custom" id="decreaseLabelCount" aria-label="Etiket adedini azalt">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-custom" id="increaseLabelCount" aria-label="Etiket adedini artır">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-custom" id="printBarcodeBtn">
+                    <i class="fas fa-print"></i> Barkodu Yazdır
+                </button>
+                <a href="@Url.Action("Index", "Product")" class="btn btn-secondary btn-custom">
+                    <i class="fas fa-arrow-left"></i> Geri Dön
+                </a>
+            </aside>
+        </div>
+    </div>
+</div>
+
+<template id="barcodeLabelTemplate">
+    <article class="sp-barcode-label">
+        <div class="sp-label-topline">
+            <span>StockifyPlus</span>
+            <strong>@(Model.Category?.Name ?? "Stok")</strong>
+        </div>
+        <h3>@Model.Name</h3>
+        <div class="sp-label-code">
+            <svg class="skuBarcode"></svg>
+            <canvas class="skuQr" aria-label="SKU QR kodu"></canvas>
+        </div>
+        <div class="sp-label-sku">@Model.SKU</div>
+        <div class="sp-label-meta">
+            <span>@Model.Price.ToString("C", trCulture)</span>
+            <span>Stok: @Model.StockQuantity</span>
+        </div>
+    </article>
+</template>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sku = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SKU));
+            const sheet = document.getElementById('barcodeLabelSheet');
+            const template = document.getElementById('barcodeLabelTemplate');
+            const copyInput = document.getElementById('labelCopyCount');
+            const printButton = document.getElementById('printBarcodeBtn');
+            const increaseButton = document.getElementById('increaseLabelCount');
+            const decreaseButton = document.getElementById('decreaseLabelCount');
+
+            function clampCopyCount(value) {
+                const parsed = Number.parseInt(value, 10);
+                if (Number.isNaN(parsed)) {
+                    return 1;
+                }
+
+                return Math.min(24, Math.max(1, parsed));
+            }
+
+            function paintBarcode(svg) {
+                JsBarcode(svg, sku, {
+                    format: 'CODE128',
+                    lineColor: '#111827',
+                    width: 2.25,
+                    height: 68,
+                    displayValue: false,
+                    margin: 18,
+                    marginTop: 10,
+                    marginBottom: 10
+                });
+            }
+
+            function paintQr(canvas) {
+                if (!canvas || !window.QRious) {
+                    return;
+                }
+
+                new QRious({
+                    element: canvas,
+                    value: sku,
+                    size: 84,
+                    level: 'M',
+                    background: '#ffffff',
+                    foreground: '#111827'
+                });
+            }
+
+            function renderLabels() {
+                if (!sheet || !template || !copyInput) {
+                    return;
+                }
+
+                const count = clampCopyCount(copyInput.value);
+                copyInput.value = count;
+                sheet.innerHTML = '';
+
+                for (let index = 0; index < count; index += 1) {
+                    const label = template.content.firstElementChild.cloneNode(true);
+                    sheet.appendChild(label);
+                    paintBarcode(label.querySelector('.skuBarcode'));
+                    paintQr(label.querySelector('.skuQr'));
+                }
+            }
+
+            copyInput?.addEventListener('input', renderLabels);
+            increaseButton?.addEventListener('click', function () {
+                copyInput.value = clampCopyCount(Number.parseInt(copyInput.value, 10) + 1);
+                renderLabels();
+            });
+            decreaseButton?.addEventListener('click', function () {
+                copyInput.value = clampCopyCount(Number.parseInt(copyInput.value, 10) - 1);
+                renderLabels();
+            });
+            printButton?.addEventListener('click', function () {
+                renderLabels();
+                window.print();
+            });
+
+            renderLabels();
+        });
+    </script>
+}

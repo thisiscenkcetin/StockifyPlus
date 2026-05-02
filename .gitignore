@@ -1,0 +1,9 @@
+bin/
+obj/
+.env
+.env.*
+!.env.example
+
+.fake
+Logs/*.log
+.price-normalization-v1.done

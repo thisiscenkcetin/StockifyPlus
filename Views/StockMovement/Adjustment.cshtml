@@ -1,0 +1,93 @@
+@{
+    ViewBag.Title = "Stok Ayarlaması";
+    var products = ViewBag.Products as List<StockifyPlus.Models.Product> ?? new List<StockifyPlus.Models.Product>();
+}
+
+<div class="sp-page-shell">
+<div class="sp-form-grid">
+    <div class="sp-form-card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-sliders-h"></i> Stok Ayarlaması
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="Adjustment">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="productId" class="form-label mb-0">Ürün Seçin <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="scanBarcodeBtn" data-bs-toggle="modal" data-bs-target="#barcodeScannerModal">
+                                <i class="fas fa-camera"></i> Kameradan Oku
+                            </button>
+                        </div>
+                        <select class="form-select" id="productId" name="productId" required>
+                            <option value="">-- Ürün Seçin --</option>
+                            @foreach (var product in products)
+                            {
+                                <option value="@product.Id">
+                                    @product.Name (Stok: @product.StockQuantity)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Ayarlama Miktarı <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" 
+                               required placeholder="Örn: +10 (ekle) veya -5 (çıkar)">
+                        <small class="form-text text-muted">
+                            Pozitif sayılar stok ekler, negatif sayılar stok çıkarır.
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Nedeni <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  required placeholder="Sayım farkı, hasar, kayıp vb..."></textarea>
+                    </div>
+                    
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            @foreach (var modelState in ViewData.ModelState.Values)
+                            {
+                                @foreach (var error in modelState.Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                            }
+                        </div>
+                    }
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning btn-custom">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                        <a href="@Url.Action("Index", "StockMovement")" class="btn btn-secondary btn-custom">
+                            <i class="fas fa-times"></i> İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+    </div>
+    <div class="sp-help-card">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb"></i> Ne Zaman Kullanılır?
+                </h6>
+                <ul class="small">
+                    <li><strong>Sayım Farkları:</strong> Fiziksel envanter sayımında sistem kaydıyla fark çıkması</li>
+                    <li><strong>Hasar:</strong> Ürün hasar gördüğünde</li>
+                    <li><strong>Kayıp:</strong> Ürün kaybolduğunda</li>
+                    <li><strong>İade:</strong> Müşteri iadesinde</li>
+                </ul>
+            </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_BarcodeScanner")
+}

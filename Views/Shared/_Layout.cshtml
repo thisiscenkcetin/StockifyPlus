@@ -1,0 +1,248 @@
+@using StockifyPlus.Services.Interfaces
+@inject INotificationSettingService NotificationSettingService
+@{
+    var isPushEnabled = true;
+    var isSignedIn = !string.IsNullOrWhiteSpace(Context.Session.GetString("UserId"));
+    var controllerName = ViewContext.RouteData.Values["Controller"]?.ToString();
+    var actionName = ViewContext.RouteData.Values["Action"]?.ToString();
+    var isDashboardPage = controllerName == "Home" && actionName == "Index";
+    var isBarcodePage = controllerName == "Product" && actionName == "Barcode";
+    var activeSectionLabel = controllerName switch
+    {
+        "Product" => "Ürünler",
+        "Category" => "Kategoriler",
+        "StockMovement" => "Hareketler",
+        "Wishlist" => "Talep Havuzu",
+        "NotificationSettings" => "Bildirimler",
+        "Account" => "Hesap",
+        _ => "Dashboard"
+    };
+    try
+    {
+        isPushEnabled = await NotificationSettingService.IsPushEnabledAsync();
+    }
+    catch
+    {
+        isPushEnabled = true;
+    }
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - StockifyPlus</title>
+    
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    
+    <link href="~/css/wishlist.css" rel="stylesheet" asp-append-version="true">
+    <link href="~/css/app.css" rel="stylesheet" asp-append-version="true">
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body
+    class="@($"{(isDashboardPage ? "sp-dashboard-page" : "")} {(isBarcodePage ? "sp-barcode-print-page" : "")}".Trim())"
+    data-stockai-ask-url="@Url.Action("Ask", "StockAI")"
+    data-notification-hub-url="/hubs/notification"
+    data-is-signed-in="@isSignedIn.ToString().ToLowerInvariant()"
+    data-is-push-enabled="@isPushEnabled.ToString().ToLowerInvariant()">
+    <form id="stockaiAntiForgeryForm" style="display: none;">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <div class="main-container">
+        <header class="mobile-shellbar" aria-label="Mobil uygulama menusu">
+            <a class="mobile-brand" href="@Url.Action("Index", "Home")" aria-label="StockifyPlus Dashboard">
+                <img src="@Url.Content("~/images/Stockify-logo.png")" alt="StockifyPlus">
+                <span>
+                    <strong>StockifyPlus</strong>
+                    <small>@activeSectionLabel</small>
+                </span>
+            </a>
+            <button id="mobileMenuToggle"
+                    class="mobile-menu-toggle"
+                    type="button"
+                    aria-label="Menüyü aç"
+                    aria-controls="appSidebar"
+                    aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+        </header>
+
+        <div id="mobileMenuBackdrop" class="mobile-menu-backdrop" hidden></div>
+
+        
+        <div id="appSidebar" class="sidebar" aria-label="Ana menü">
+            <div class="mobile-menu-head">
+                <div class="mobile-menu-title">
+                    <strong>Menü</strong>
+                    <small>@activeSectionLabel</small>
+                </div>
+                <button id="mobileMenuClose" class="mobile-menu-close" type="button" aria-label="Menüyü kapat">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="traffic-lights">
+                <div class="traffic-light red"></div>
+                <div class="traffic-light yellow"></div>
+                <div class="traffic-light green"></div>
+            </div>
+
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="@Url.Content("~/images/Stockify-logo.png")"
+                         data-light-logo="@Url.Content("~/images/Stockify-logo.png")"
+                         data-dark-logo="@Url.Content("~/images/stockify-logo-white.png")"
+                         alt="StockifyPlus"
+                         class="brand-logo-img">
+                </div>
+                <div class="logo-text">Akıllı Depo Sistemi</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="@Url.Action("Index", "Home")" class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")">
+                    <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="nav-label">Dashboard</div>
+                </a>
+
+                <a href="@Url.Action("Index", "Product")" class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Product" ? "active" : "")">
+                    <div class="nav-icon"><i class="fas fa-box"></i></div>
+                    <div class="nav-label">&Uuml;r&uuml;nler</div>
+                </a>
+
+                <a href="@Url.Action("Index", "Category")" class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Category" ? "active" : "")">
+                    <div class="nav-icon"><i class="fas fa-layer-group"></i></div>
+                    <div class="nav-label">Kategoriler</div>
+                </a>
+
+                <a href="@Url.Action("Index", "StockMovement")" class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "StockMovement" ? "active" : "")">
+                    <div class="nav-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <div class="nav-label">Hareketler</div>
+                </a>
+
+                <a href="@Url.Action("Index", "Wishlist")" class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Wishlist" ? "active" : "")">
+                    <div class="nav-icon"><i class="fas fa-clipboard-list"></i></div>
+                    <div class="nav-label">Talep Havuzu</div>
+                </a>
+
+                <div class="sidebar-actions">
+                    <a href="@Url.Action("Index", "NotificationSettings")"
+                       class="sidebar-action notification-action"
+                       title="Bildirim Ayarları"
+                       aria-label="Bildirim Ayarları">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M18 10.5V9a6 6 0 0 0-12 0v1.5c0 2.1-.7 3.4-1.6 4.5A1.2 1.2 0 0 0 5.3 17h13.4a1.2 1.2 0 0 0 .9-2c-.9-1.1-1.6-2.4-1.6-4.5Z" />
+                            <path d="M9.8 19a2.4 2.4 0 0 0 4.4 0" />
+                        </svg>
+                    </a>
+                    <button id="themeToggle" class="sidebar-action theme-toggle nav-theme-toggle" title="Tema Değiştir" aria-label="Tema Değiştir">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <a href="@Url.Action("Logout", "Account")"
+                       class="sidebar-action logout-action"
+                       title="Çıkış Yap"
+                       aria-label="Çıkış Yap">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M10 7V5.8A1.8 1.8 0 0 1 11.8 4h5.4A1.8 1.8 0 0 1 19 5.8v12.4a1.8 1.8 0 0 1-1.8 1.8h-5.4A1.8 1.8 0 0 1 10 18.2V17" />
+                            <path d="M15 12H4" />
+                            <path d="m7.5 8.5-3.5 3.5 3.5 3.5" />
+                        </svg>
+                    </a>
+                </div>
+            </nav>
+
+            @if (Context.User.Identity?.IsAuthenticated == true)
+            {
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-meta">
+                        <div class="user-name">@Context.User.Identity.Name</div>
+                        <div class="user-role">Kullanıcı</div>
+                    </div>
+                    <div class="user-actions">
+                        <a href="@Url.Action("Profile", "Account")" title="Profil" aria-label="Profil">
+                            <i class="fas fa-user-gear"></i>
+                        </a>
+                        <a href="@Url.Action("Logout", "Account")" title="Çıkış Yap" aria-label="Çıkış Yap">
+                            <i class="fas fa-right-from-bracket"></i>
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+
+        
+        <div class="center-panel">
+            @RenderBody()
+        </div>
+
+        <button id="stockaiBtn" class="stockai-fab" title="StockAI Asistanı" aria-label="StockAI Asistanı"
+                data-bs-toggle="offcanvas" data-bs-target="#stockaiPanel" aria-controls="stockaiPanel">
+            <i class="fas fa-robot"></i>
+        </button>
+    </div>
+
+    <div id="stockAlertToastContainer" class="toast-container position-fixed top-0 end-0 p-3 sp-toast-container"></div>
+
+    @if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
+    {
+        <div id="appToastPayload"
+             hidden
+             data-success-message="@TempData["SuccessMessage"]"
+             data-error-message="@TempData["ErrorMessage"]"></div>
+    }
+
+    <aside class="offcanvas offcanvas-end stockai-drawer" tabindex="-1" id="stockaiPanel" aria-labelledby="stockaiLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="stockaiLabel">
+                <i class="fas fa-robot me-2"></i> StockAI Asistanı
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body stockai-chat" id="stockaiChat">
+            <div class="stockai-message bot stockai-welcome">
+                <div class="stockai-welcome-copy">
+                    <p>Merhaba,</p>
+                    <p>Akıllı depo asistanına hoş geldiniz</p>
+                    <p>İşlemlerinize devam edebilmemiz için lütfen seçim yapınız:</p>
+                </div>
+                <div class="stockai-quick-replies" aria-label="StockAI hızlı seçimler">
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Analiz">Analiz</button>
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Hafıza">Hafıza</button>
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Listeleme">Listeleme</button>
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Ürün ekleme">Ürün ekleme</button>
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Ürün güncelleme">Ürün güncelleme</button>
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Stok girişi">Stok girişi</button>
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Stok çıkışı">Stok çıkışı</button>
+                    <button type="button" class="stockai-quick-reply" data-stockai-quick-prompt="Riskli düşüş">Riskli düşüş</button>
+                </div>
+                <p class="stockai-welcome-note">Aklınıza takılan soruları sorabilirsiniz.</p>
+            </div>
+        </div>
+        <div class="offcanvas-footer stockai-drawer-footer">
+            <div class="input-group stockai-input-group">
+                <input type="text" class="form-control" id="stockaiInput" placeholder="Mesajınızı yazın..." />
+                <button class="btn btn-primary" id="stockaiSend" type="button" aria-label="Gönder">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" referrerpolicy="no-referrer"></script>
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
+

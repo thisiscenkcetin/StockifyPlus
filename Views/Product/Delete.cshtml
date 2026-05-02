@@ -1,0 +1,69 @@
+@{
+    var product = ViewData.Model as StockifyPlus.Models.Product;
+    ViewBag.Title = "Ürünü Sil";
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="sp-page-shell sp-delete-page">
+    <div class="sp-danger-card sp-delete-confirmation">
+        <div class="sp-delete-header">
+            <span class="sp-delete-icon" aria-hidden="true">
+                <i class="fas fa-trash"></i>
+            </span>
+            <div>
+                <h2>Ürünü Sil</h2>
+                <p>Bu ürün pasif duruma alınacak ve aktif ürün listelerinde görünmeyecek.</p>
+            </div>
+        </div>
+
+        <div class="sp-delete-body">
+            <div class="sp-delete-warning" role="alert">
+                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                <div>
+                    <strong>Dikkat</strong>
+                    <span>Bu işlem geri alınamaz. Devam etmeden önce ürün bilgilerini kontrol edin.</span>
+                </div>
+            </div>
+
+            <div class="sp-delete-question">
+                <h3>Bu ürünün silinmesini onaylıyor musunuz?</h3>
+                <p>Silme işlemi ürünü sistemde pasif hale getirir; geçmiş stok hareketleri korunur.</p>
+            </div>
+
+            <div class="sp-delete-summary">
+                <div class="sp-delete-summary-row">
+                    <span>SKU</span>
+                    <strong>@product?.SKU</strong>
+                </div>
+                <div class="sp-delete-summary-row">
+                    <span>Adı</span>
+                    <strong>@product?.Name</strong>
+                </div>
+                <div class="sp-delete-summary-row">
+                    <span>Kategori</span>
+                    <strong>@(product?.Category?.Name ?? "-")</strong>
+                </div>
+                <div class="sp-delete-summary-row">
+                    <span>Mevcut Stok</span>
+                    <strong>@(product?.StockQuantity ?? 0) adet</strong>
+                </div>
+                <div class="sp-delete-summary-row">
+                    <span>Fiyat</span>
+                    <strong>@((product?.Price ?? 0).ToString("C", trCulture))</strong>
+                </div>
+            </div>
+
+            <form method="post" asp-action="Delete" class="sp-delete-actions">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@product?.Id">
+
+                <a href="@Url.Action("Index", "Product")" class="btn btn-secondary btn-custom">
+                    <i class="fas fa-times"></i> İptal
+                </a>
+                <button type="submit" class="btn btn-danger btn-custom">
+                    <i class="fas fa-trash"></i> Evet, Sil
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

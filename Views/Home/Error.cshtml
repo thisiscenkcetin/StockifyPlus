@@ -1,0 +1,23 @@
+@{
+    ViewBag.Title = "Hata";
+}
+
+<div class="sp-page-shell">
+    <div class="sp-danger-card">
+            <div class="card-header text-center">
+                <h3 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Hata
+                </h3>
+            </div>
+            <div class="card-body text-center">
+                <h2 class="display-4 text-danger">500</h2>
+                <p class="lead">Sunucu Hatası</p>
+                <p class="text-muted">
+                    Beklenmedik bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.
+                </p>
+                <a href="@Url.Action("Index", "Home")" class="btn btn-primary btn-custom">
+                    <i class="fas fa-home"></i> Ana Sayfaya Dön
+                </a>
+            </div>
+    </div>
+</div>

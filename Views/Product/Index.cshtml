@@ -1,0 +1,358 @@
+@model StockifyPlus.Models.PagedResult<StockifyPlus.Models.Product>
+@{
+    var isLowStockView = ViewBag.IsLowStockView as bool? ?? false;
+    ViewBag.Title = isLowStockView ? "Düşük Stok Ürünleri" : "Ürünler";
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+    var currentSearch = ViewBag.CurrentSearch as string;
+    var currentCategoryId = ViewBag.CurrentCategoryId as int?;
+    var currentPageSize = ViewBag.CurrentPageSize as int? ?? 20;
+    var categories = ViewBag.Categories as IEnumerable<StockifyPlus.Models.Category> ?? new List<StockifyPlus.Models.Category>();
+}
+
+<div class="sp-page-shell">
+<div class="sp-page-header">
+    <h2 class="sp-page-title">
+        <i class="fas @(isLowStockView ? "fa-triangle-exclamation" : "fa-box")"></i> @(isLowStockView ? "Düşük Stok Ürünleri" : "Ürün Yönetimi")
+    </h2>
+    <div class="sp-toolbar">
+        <a href="@Url.Action("ExportToExcel", "Product")" class="btn btn-success btn-custom">
+            <i class="fas fa-file-excel"></i> Dışarı Aktar
+        </a>
+        <button type="button" class="btn btn-outline-success btn-custom" data-bs-toggle="modal" data-bs-target="#excelImportModal">
+            <i class="fas fa-file-import"></i> İçeri Aktar
+        </button>
+        <a href="@Url.Action("Create", "Product")" class="btn btn-primary btn-custom">
+            <i class="fas fa-plus"></i> Yeni Ürün
+        </a>
+        <a href="@Url.Action("LowStock", "Product")" class="btn btn-warning btn-custom">
+            <i class="fas fa-exchange-alt"></i> Düşük Stok
+        </a>
+        @if (isLowStockView)
+        {
+            <a href="@Url.Action("Index", "Product")" class="btn btn-secondary btn-custom">
+                <i class="fas fa-list"></i> Tüm Ürünler
+            </a>
+        }
+    </div>
+</div>
+
+<div class="card sp-surface sp-filter-card @(isLowStockView ? "d-none" : "")">
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">
+                    <i class="fas fa-search"></i> Ürün Ara (Ad veya SKU)
+                </label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="@currentSearch" placeholder="Ürün adı veya SKU...">
+            </div>
+            <div class="col-md-3">
+                <label for="categoryId" class="form-label">
+                    <i class="fas fa-filter"></i> Kategori
+                </label>
+                <select class="form-select" id="categoryId" name="categoryId">
+                    <option value="">Tüm Kategoriler</option>
+                    @foreach (var category in categories)
+                    {
+                        <option value="@category.Id" selected="@(currentCategoryId == category.Id)">
+                            @category.Name
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="pageSize" class="form-label">
+                    <i class="fas fa-list"></i> Sayfa Boyutu
+                </label>
+                <select class="form-select" id="pageSize" name="pageSize">
+                    <option value="10" selected="@(currentPageSize == 10)">10</option>
+                    <option value="20" selected="@(currentPageSize == 20)">20</option>
+                    <option value="50" selected="@(currentPageSize == 50)">50</option>
+                    <option value="100" selected="@(currentPageSize == 100)">100</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Filtrele
+                </button>
+                <a href="@Url.Action("Index")" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Temizle
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.TotalCount > 0)
+{
+    <div class="alert alert-info mb-3 sp-results-summary">
+        <i class="fas fa-info-circle"></i> 
+        @if (isLowStockView)
+        {
+            <text>Toplam <strong>@Model.TotalCount</strong> düşük stoklu ürün bulundu.</text>
+        }
+        else
+        {
+            <text>Toplam <strong>@Model.TotalCount</strong> ürün bulundu. Gösterilen: <strong>@Model.FirstItemIndex</strong> - <strong>@Model.LastItemIndex</strong></text>
+        }
+    </div>
+}
+
+@if (Model.Items.Any())
+{
+    <div class="table-responsive sp-table-wrap">
+        <table class="table table-hover sp-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Ürün Adı</th>
+                    <th>Kategori</th>
+                    <th>Stok</th>
+                    <th>Kritik</th>
+                    <th>Fiyat</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in Model.Items)
+                {
+                    var isLowStock = product.StockQuantity <= product.CriticalStockLevel;
+                    <tr class="@(isLowStock ? "table-danger" : "")">
+                        <td><strong>@product.SKU</strong></td>
+                        <td>@product.Name</td>
+                        <td>@product.Category?.Name</td>
+                        <td>
+                            <strong>@product.StockQuantity</strong>
+                            @if (isLowStock)
+                            {
+                                <span class="badge-low-stock">
+                                    <i class="fas fa-warning"></i> Düşük Stok
+                                </span>
+                            }
+                        </td>
+                        <td>@product.CriticalStockLevel</td>
+                        <td>
+                            @{ 
+                                var vatRate = 0.20m;
+                                var taxAmount = Math.Round(product.Price * vatRate / (1 + vatRate), 2);
+                            }
+                            <div><strong>@product.Price.ToString("N2", trCulture) ₺</strong></div>
+                            <small class="text-muted">Vergi: @taxAmount.ToString("N2", trCulture) ₺</small>
+                        </td>
+                        <td class="sp-product-actions-cell">
+                            <div class="sp-product-actions" role="group" aria-label="@product.Name işlemleri">
+                            <a href="@Url.Action("Barcode", "Product", new { id = product.Id })"
+                               class="sp-icon-action sp-icon-action-neutral" title="QR / Barkod" aria-label="@product.Name QR veya barkod">
+                                <i class="fas fa-qrcode fa-fw"></i>
+                            </a>
+                            <a href="@Url.Action("Details", "Product", new { id = product.Id })" 
+                               class="sp-icon-action sp-icon-action-info" title="Detay" aria-label="@product.Name detay">
+                                <i class="fas fa-eye fa-fw"></i>
+                            </a>
+                            <a href="@Url.Action("Edit", "Product", new { id = product.Id })" 
+                               class="sp-icon-action sp-icon-action-edit" title="Düzenle" aria-label="@product.Name düzenle">
+                                <i class="fas fa-pen fa-fw"></i>
+                            </a>
+                            <a href="@Url.Action("Delete", "Product", new { id = product.Id })" 
+                               class="sp-icon-action sp-icon-action-danger" title="Sil" aria-label="@product.Name sil">
+                                <i class="fas fa-trash-can fa-fw"></i>
+                            </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Ürün sayfalama">
+            <ul class="pagination justify-content-center">
+                
+                <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { page = 1, pageSize = currentPageSize, search = currentSearch, categoryId = currentCategoryId })">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+
+                
+                <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage - 1, pageSize = currentPageSize, search = currentSearch, categoryId = currentCategoryId })">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+
+                @{
+                    var startPage = Math.Max(1, Model.CurrentPage - 2);
+                    var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+
+                    if (startPage > 1)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    }
+
+                    for (var i = startPage; i <= endPage; i++)
+                    {
+                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { page = i, pageSize = currentPageSize, search = currentSearch, categoryId = currentCategoryId })">
+                                @i
+                            </a>
+                        </li>
+                    }
+
+                    if (endPage < Model.TotalPages)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    }
+                }
+
+                
+                <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage + 1, pageSize = currentPageSize, search = currentSearch, categoryId = currentCategoryId })">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+
+                
+                <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { page = Model.TotalPages, pageSize = currentPageSize, search = currentSearch, categoryId = currentCategoryId })">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 
+        @if (!string.IsNullOrWhiteSpace(currentSearch) || currentCategoryId.HasValue)
+        {
+            <text>Arama kriterlerinize uygun ürün bulunamadı. <a href="@Url.Action("Index")">Tüm ürünleri göster</a></text>
+        }
+        else if (isLowStockView)
+        {
+            <text>Düşük stoklu ürün bulunmuyor. <a href="@Url.Action("Index", "Product")">Tüm ürünlere dön</a></text>
+        }
+        else
+        {
+            <text>Henüz ürün oluşturulmamış. <a href="@Url.Action("Create", "Product")">Yeni ürün oluşturmak için tıklayın.</a></text>
+        }
+    </div>
+}
+
+</div>
+
+<div class="modal fade" id="excelImportModal" tabindex="-1" aria-labelledby="excelImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="excelImportModalLabel">
+                    <i class="fas fa-file-import"></i> Excel ile Ürün İçeri Aktar
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="excelImportForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="excelFileInput" class="form-label">Excel Dosyası (.xlsx)</label>
+                        <input class="form-control" type="file" id="excelFileInput" name="file" accept=".xlsx" required />
+                    </div>
+                    <div class="sp-import-note">
+                        <i class="fas fa-circle-info"></i>
+                        <div>
+                            <strong>Beklenen kolon sırası</strong>
+                            <div>SKU, Ürün Adı, Kategori, Fiyat, Miktar</div>
+                        </div>
+                    </div>
+                    <div id="excelImportResult" class="mt-3 d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" id="excelImportSubmitBtn" class="btn btn-success">
+                        <i class="fas fa-upload"></i> Yükle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const form = document.getElementById('excelImportForm');
+        if (!form) return;
+
+        const resultBox = document.getElementById('excelImportResult');
+        const submitBtn = document.getElementById('excelImportSubmitBtn');
+
+        function showResult(type, html) {
+            resultBox.className = `alert alert-${type} mt-3`;
+            resultBox.innerHTML = html;
+            resultBox.classList.remove('d-none');
+        }
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('excelFileInput');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                showResult('warning', 'Lütfen bir Excel dosyası seçin.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            const originalButtonText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Yükleniyor...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                const response = await fetch('@Url.Action("ImportFromExcel", "Product")', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token || ''
+                    },
+                    body: formData
+                });
+
+                const payload = await response.json();
+
+                if (!response.ok || !payload.success) {
+                    showResult('danger', payload.message || 'İçeri aktarma sırasında hata oluştu.');
+                    return;
+                }
+
+                const errors = (payload.errors || []).slice(0, 8);
+                const errorsHtml = errors.length
+                    ? `<hr/><div><strong>Örnek hatalar:</strong><ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul></div>`
+                    : '';
+
+                showResult(
+                    'success',
+                    `Toplam satır: <strong>${payload.totalRows}</strong><br/>` +
+                    `Yeni eklenen: <strong>${payload.created}</strong><br/>` +
+                    `Güncellenen: <strong>${payload.updated}</strong><br/>` +
+                    `Atlanan: <strong>${payload.skipped}</strong>${errorsHtml}`
+                );
+
+                setTimeout(() => window.location.reload(), 1800);
+            } catch (error) {
+                showResult('danger', 'Sunucuya bağlanırken hata oluştu.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalButtonText;
+            }
+        });
+    })();
+</script>

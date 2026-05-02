@@ -1,0 +1,76 @@
+@{
+    var user = (StockifyPlus.Models.AppUser)ViewData.Model!;
+    ViewBag.Title = "Profilim";
+}
+
+<div class="sp-page-shell">
+<div class="sp-page-header">
+    <h2 class="sp-page-title">
+        <i class="fas fa-user-circle"></i> Profilim
+    </h2>
+</div>
+
+<div class="sp-form-grid">
+    <div class="sp-form-card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-circle"></i> Profil Bilgileri
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="sp-detail-grid">
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Kullanıcı Adı</span>
+                        <span class="sp-detail-value">@user.Username</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Ad Soyad</span>
+                        <span class="sp-detail-value">@user.FullName</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">E-posta</span>
+                        <span class="sp-detail-value">@user.Email</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Rol</span>
+                        <span class="badge bg-primary">@user.Role.ToString()</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Durum</span>
+                        @if (user.IsActive)
+                        {
+                            <span class="badge bg-success">Aktif</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Pasif</span>
+                        }
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Kayıt Tarihi</span>
+                        <span class="sp-detail-value">@user.CreatedDate.ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Son Giriş</span>
+                        <span class="sp-detail-value">@(user.LastLoginDate.HasValue ? user.LastLoginDate.Value.ToString("dd.MM.yyyy HH:mm") : "Giriş yapılmamış")</span>
+                    </div>
+                </div>
+            </div>
+    </div>
+    <div class="sp-help-card">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-tools"></i> İşlemler
+                </h6>
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("ChangePassword", "Account")" class="btn btn-warning btn-custom">
+                        <i class="fas fa-key"></i> Şifre Değiştir
+                    </a>
+                    <a href="@Url.Action("Logout", "Account")" class="btn btn-danger btn-custom">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </a>
+                </div>
+            </div>
+    </div>
+</div>
+</div>

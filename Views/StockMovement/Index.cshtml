@@ -1,0 +1,94 @@
+@{
+    ViewBag.Title = "Stok Hareketleri";
+    var movements = ViewData.Model as List<StockifyPlus.Models.StockMovement> ?? new List<StockifyPlus.Models.StockMovement>();
+}
+
+<div class="sp-page-shell">
+<div class="sp-page-header">
+    <h2 class="sp-page-title">
+        <i class="fas fa-exchange-alt"></i> Stok Hareketleri
+    </h2>
+    <div class="sp-toolbar">
+        <div class="btn-group" role="group" aria-label="Stok hareketi aksiyonları">
+            <a href="@Url.Action("StockIn", "StockMovement")" class="btn btn-success btn-custom">
+                <i class="fas fa-arrow-up"></i> Giriş
+            </a>
+            <a href="@Url.Action("StockOut", "StockMovement")" class="btn btn-danger btn-custom">
+                <i class="fas fa-arrow-down"></i> Çıkış
+            </a>
+            <a href="@Url.Action("Adjustment", "StockMovement")" class="btn btn-warning btn-custom">
+                <i class="fas fa-sliders-h"></i> Ayarlama
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (movements.Any())
+{
+    <div class="table-responsive sp-table-wrap">
+        <table class="table table-hover sp-table">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Ürün</th>
+                    <th>Hareket Türü</th>
+                    <th>Miktar</th>
+                    <th>Açıklama</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var movement in movements.OrderByDescending(m => m.MovementDate))
+                {
+                    var isOut = movement.MovementType == StockifyPlus.Models.Enums.MovementType.Çıkış;
+                    <tr>
+                        <td>@movement.MovementDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@movement.Product?.Name</td>
+                        <td>
+                            @switch(movement.MovementType.ToString())
+                            {
+                                case "Giriş":
+                                    <span class="badge bg-success"><i class="fas fa-arrow-up"></i> Giriş</span>
+                                    break;
+                                case "Çıkış":
+                                    <span class="badge bg-danger"><i class="fas fa-arrow-down"></i> Çıkış</span>
+                                    break;
+                                case "Transfer":
+                                    <span class="badge bg-info"><i class="fas fa-exchange-alt"></i> Transfer</span>
+                                    break;
+                                case "Ayarlama":
+                                    <span class="badge bg-warning"><i class="fas fa-sliders-h"></i> Ayarlama</span>
+                                    break;
+                            }
+                        </td>
+                        <td class="@(isOut ? "text-danger" : "text-success")">
+                            <strong>@(isOut ? "-" : "+")@movement.Quantity</strong>
+                        </td>
+                        <td>@(string.IsNullOrEmpty(movement.Description) ? "-" : movement.Description)</td>
+                        <td>
+                            <form method="post" asp-action="ReverseMovement" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="movementId" value="@movement.Id">
+                                <button type="submit" class="btn btn-sm btn-warning btn-custom"
+                                        title="Hareketi geri al"
+                                        onclick="return confirm('Bu hareketi geri almak istediğinize emin misiniz?');">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="sp-empty-state">
+        <div>
+            <i class="fas fa-exchange-alt"></i>
+            <div>Henüz stok hareketi kaydedilmemiş.</div>
+        </div>
+    </div>
+}
+</div>

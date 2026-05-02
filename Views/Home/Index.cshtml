@@ -1,0 +1,939 @@
+@using Microsoft.AspNetCore.Http
+@{
+    ViewBag.Title = "Dashboard";
+}
+
+<div id="report-content" class="sp-report-stack">
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="kpi-label">Kritik Stok</div>
+            <div class="kpi-value">@(ViewData["LowStockProducts"] ?? 0)</div>
+            <div class="kpi-subtext">Dikkat gerektiren</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon">
+                <i class="fas fa-boxes"></i>
+            </div>
+            <div class="kpi-label">Toplam Ürün</div>
+            <div class="kpi-value">@(ViewData["TotalProducts"] ?? 0)</div>
+            <div class="kpi-subtext">Aktif ürünler</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon">
+                <i class="fas fa-arrow-right-arrow-left"></i>
+            </div>
+            <div class="kpi-label">Bugünkü Hareket</div>
+            <div class="kpi-value">@(ViewData["TodayMovements"] ?? 0)</div>
+            <div class="kpi-subtext">İşlem yapılmış</div>
+        </div>
+    </div>
+
+    
+    <div class="chart-container">
+        <div class="chart-title d-flex align-items-center justify-content-between gap-2 flex-wrap">
+            <span><i class="fas fa-chart-area"></i> Haftalık Stok Trendi</span>
+            <button id="downloadReportBtn" type="button" class="btn btn-sm sp-btn sp-btn-secondary"
+                    title="PDF Raporu İndir">
+                <i class="fas fa-file-pdf me-1"></i> PDF Raporu İndir
+            </button>
+        </div>
+        <div class="sp-chart-frame">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="sp-dashboard-grid">
+    <div class="quick-actions">
+        <div class="sp-section-title">
+            <i class="fas fa-lightning-bolt"></i>Hızlı İşlemler
+        </div>
+        <div class="sp-action-grid">
+            <a href="@Url.Action("Create", "Product")" class="action-btn action-btn-primary btn-ripple">
+                <i class="fas fa-plus"></i> Yeni Ürün
+            </a>
+            <a href="@Url.Action("StockOut", "StockMovement")" class="action-btn action-btn-primary btn-ripple">
+                <i class="fas fa-minus"></i> Stok Düş
+            </a>
+            <a href="@Url.Action("StockIn", "StockMovement")" class="action-btn action-btn-primary btn-ripple">
+                <i class="fas fa-barcode"></i> Barkod Oku
+            </a>
+            <a href="@Url.Action("Index", "NotificationSettings")" class="action-btn action-btn-primary btn-ripple">
+                <i class="fas fa-bell"></i> Stok Bildirimi
+            </a>
+        </div>
+    </div>
+
+    <div class="activity-log activity-log-compact">
+        <div class="activity-title">
+            <span><i class="fas fa-list"></i> Son Hareketler</span>
+            <small>Canlı akış</small>
+        </div>
+        <div class="activity-preview">
+            <div class="activity-list" id="activityList">
+            <div class="activity-item">
+                <strong>Yükleniyor...</strong>
+                <div class="activity-time">Son hareketler getiriliyor</div>
+            </div>
+            </div>
+        </div>
+        <div class="activity-log-footer">
+            <a href="@Url.Action("Logs", "Home")" class="sp-log-review-btn">
+                <span class="sp-log-review-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </span>
+                <span>Log Kayıtlarını İncele</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.min.js" referrerpolicy="no-referrer"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const activityList = document.getElementById('activityList');
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+        const dashboardMetrics = {
+            lowStockProducts: Number('@(ViewData["LowStockProducts"] ?? 0)'),
+            totalProducts: Number('@(ViewData["TotalProducts"] ?? 0)'),
+            todayMovements: Number('@(ViewData["TodayMovements"] ?? 0)')
+        };
+        const trendLabels = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+        const trendValues = [120, 135, 128, 142, 155, 168, 156];
+        let recentActivities = [];
+        let trendChartInstance = null;
+
+        function buildReportFileName() {
+            const now = new Date();
+            const pad = (value) => String(value).padStart(2, '0');
+            const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+            return `StockifyPlus_Rapor_${stamp}.pdf`;
+        }
+
+        async function downloadPdfReport() {
+            if (!window.pdfMake) {
+                alert('PDF raporu oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+                return;
+            }
+
+            const chartCanvas = document.getElementById('trendChart');
+            if (!chartCanvas) {
+                alert('Grafik alanı bulunamadı.');
+                return;
+            }
+
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+
+            downloadReportBtn.disabled = true;
+            const originalLabel = downloadReportBtn.innerHTML;
+            downloadReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Hazirlaniyor...';
+
+            try {
+                const docDefinition = buildPdfMakeReport(chartCanvas);
+                window.pdfMake.createPdf(docDefinition).download(buildReportFileName());
+            } catch (error) {
+                console.error('PDF oluşturma hatası:', error);
+                alert('PDF oluşturma sırasında bir hata oluştu.');
+            } finally {
+                downloadReportBtn.disabled = false;
+                downloadReportBtn.innerHTML = originalLabel;
+            }
+        }
+
+        if (downloadReportBtn) {
+            downloadReportBtn.addEventListener('click', downloadPdfReport);
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatRelativeTime(dateString) {
+            const eventDate = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - eventDate;
+
+            if (Number.isNaN(eventDate.getTime())) {
+                return '-';
+            }
+
+            const minutes = Math.floor(diffMs / 60000);
+            const hours = Math.floor(diffMs / 3600000);
+            const days = Math.floor(diffMs / 86400000);
+
+            if (minutes < 1) return 'Az önce';
+            if (minutes < 60) return `${minutes} dakika önce`;
+            if (hours < 24) return `${hours} saat önce`;
+            if (days === 1) return 'Dün';
+            return `${days} gün önce`;
+        }
+
+        function formatReportDate(date) {
+            return new Intl.DateTimeFormat('tr-TR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
+
+        function formatPdfReportDate(date) {
+            const pad = (value) => String(value).padStart(2, '0');
+            return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function getInventoryHealth() {
+            if (dashboardMetrics.totalProducts <= 0) {
+                return 100;
+            }
+
+            const healthyRatio = (dashboardMetrics.totalProducts - dashboardMetrics.lowStockProducts) / dashboardMetrics.totalProducts;
+            return Math.max(0, Math.min(100, Math.round(healthyRatio * 100)));
+        }
+
+        function getHealthTone(score) {
+            if (score >= 85) {
+                return {
+                    label: 'Stok sağlığı güçlü',
+                    message: 'Operasyon ritmi dengeli görünüyor. Kritik ürünleri aynı disiplinle takip etmeye devam edin.'
+                };
+            }
+
+            if (score >= 60) {
+                return {
+                    label: 'Kontrol altında',
+                    message: 'Genel tablo iyi, fakat kritik stok tarafında kısa bir kontrol turu verim sağlar.'
+                };
+            }
+
+            return {
+                label: 'Aksiyon gerekli',
+                message: 'Kritik stok seviyesi yükselmiş. Öncelikli ürünleri yenileme listesine almak iyi olur.'
+            };
+        }
+
+        function buildPdfMakeReport(chartCanvas) {
+            const score = getInventoryHealth();
+            const tone = getHealthTone(score);
+            const activities = recentActivities.length
+                ? recentActivities.slice(0, 4)
+                : [{ title: 'Henüz hareket yok', detail: 'Yeni operasyonlar raporda burada görünecek.', time: new Date().toISOString() }];
+            const maxTrend = Math.max(...trendValues, 1);
+            const activityBody = [
+                [
+                    { text: 'İŞLEM', style: 'tableHead' },
+                    { text: 'AÇIKLAMA', style: 'tableHead' },
+                    { text: 'TARİH', style: 'tableHead', alignment: 'right' }
+                ],
+                ...activities.map((item) => [
+                    { text: String(item.title || '-'), style: 'activityTitle' },
+                    { text: String(item.detail || '-'), style: 'activityDetail' },
+                    { text: formatRelativeTime(item.time), style: 'activityTime', alignment: 'right', noWrap: true }
+                ])
+            ];
+            const trendBars = trendValues.map((value, index) => {
+                const height = Math.max(8, (value / maxTrend) * 34);
+                return {
+                    width: '*',
+                    stack: [
+                        {
+                            canvas: [
+                                { type: 'rect', x: 8, y: 0, w: 8, h: 34, r: 4, color: '#e5eef8' },
+                                { type: 'rect', x: 8, y: 34 - height, w: 8, h: height, r: 4, color: '#2563eb' }
+                            ],
+                            margin: [0, 0, 0, 5]
+                        },
+                        { text: trendLabels[index].slice(0, 3), style: 'barLabel', alignment: 'center' }
+                    ]
+                };
+            });
+
+            return {
+                pageSize: 'A4',
+                pageMargins: [32, 30, 32, 30],
+                background: { canvas: [{ type: 'rect', x: 0, y: 0, w: 595, h: 842, color: '#f7fafc' }] },
+                defaultStyle: { font: 'Roboto', color: '#0f172a' },
+                content: [
+                    {
+                        table: {
+                            widths: ['*', 82],
+                            body: [[
+                                {
+                                    stack: [
+                                        { text: 'STOCKIFYPLUS OPERASYON RAPORU', style: 'eyebrow' },
+                                        { text: 'Stok Performans Özeti', style: 'heroTitle' },
+                                        { text: `${formatReportDate(new Date())} tarihinde oluşturuldu`, style: 'heroMeta' }
+                                    ],
+                                    border: [false, false, false, false],
+                                    fillColor: '#102033',
+                                    margin: [24, 20, 0, 18]
+                                },
+                                {
+                                    stack: [
+                                        { text: String(score), style: 'scoreNumber', alignment: 'center' },
+                                        { text: 'ENVANTER PUANI', style: 'scoreLabel', alignment: 'center' }
+                                    ],
+                                    border: [false, false, false, false],
+                                    fillColor: '#102033',
+                                    margin: [0, 20, 24, 18]
+                                }
+                            ]]
+                        },
+                        layout: 'noBorders',
+                        margin: [0, 0, 0, 22]
+                    },
+                    {
+                        columns: [
+                            buildPdfKpi('Kritik Stok', dashboardMetrics.lowStockProducts, 'Dikkat gerektiren ürün', '#ef4444'),
+                            buildPdfKpi('Toplam Ürün', dashboardMetrics.totalProducts, 'Aktif ürün kartı', '#2563eb'),
+                            buildPdfKpi('Bugünkü Hareket', dashboardMetrics.todayMovements, 'Operasyon aktivitesi', '#10b981')
+                        ],
+                        columnGap: 12,
+                        margin: [0, 0, 0, 20]
+                    },
+                    {
+                        columns: [
+                            {
+                                width: '*',
+                                stack: [
+                                    buildPdfPanelHeader('Haftalık Stok Trendi', 'SON 7 GÜN'),
+                                    buildPdfTrendChart()
+                                ],
+                                style: 'panel'
+                            },
+                            {
+                                width: 190,
+                                stack: [
+                                    buildPdfPanelHeader('Stok Sağlığı', 'OPERASYON'),
+                                    {
+                                        table: {
+                                            widths: ['*', 88],
+                                            body: [[
+                                                { text: tone.label, style: 'healthLabel', border: [false, false, false, false], fillColor: '#eff6ff', margin: [12, 10, 4, 10] },
+                                                { text: `${score}/100`, style: 'healthScore', alignment: 'right', noWrap: true, border: [false, false, false, false], fillColor: '#eff6ff', margin: [0, 8, 12, 8] }
+                                            ]]
+                                        },
+                                        layout: 'noBorders',
+                                        margin: [0, 12, 0, 10]
+                                    },
+                                    { text: tone.message, style: 'bodyText', margin: [0, 0, 0, 14] },
+                                    {
+                                        canvas: [
+                                            { type: 'rect', x: 0, y: 0, w: 166, h: 8, r: 4, color: '#e5e7eb' },
+                                            { type: 'rect', x: 0, y: 0, w: Math.max(8, (166 * score) / 100), h: 8, r: 4, color: '#10b981' }
+                                        ],
+                                        margin: [0, 0, 0, 14]
+                                    },
+                                    { columns: trendBars, columnGap: 4 }
+                                ],
+                                style: 'panel'
+                            }
+                        ],
+                        columnGap: 14,
+                        margin: [0, 0, 0, 20]
+                    },
+                    {
+                        columns: [
+                            {
+                                width: '*',
+                                stack: [
+                                    buildPdfPanelHeader('Son Hareketler', 'SON KAYITLAR'),
+                                    {
+                                        table: { widths: [92, '*', 64], body: activityBody },
+                                        layout: {
+                                            hLineWidth: (i) => i === 0 ? 0 : 0.7,
+                                            vLineWidth: () => 0,
+                                            hLineColor: () => '#e2e8f0',
+                                            paddingTop: (i) => i === 0 ? 4 : 10,
+                                            paddingBottom: () => 9,
+                                            paddingLeft: () => 0,
+                                            paddingRight: () => 8
+                                        },
+                                        margin: [0, 12, 0, 0]
+                                    }
+                                ],
+                                style: 'panel'
+                            },
+                            {
+                                width: 190,
+                                stack: [
+                                    buildPdfPanelHeader('Bugünün Odağı', 'KISA NOT'),
+                                    {
+                                        text: 'Stok takibi küçük ve düzenli kontrollerle güçlenir. Kritik ürünleri azaltmak ve hareket akışının canlı kalmasını sağlamak bugünün en değerli kazanımı.',
+                                        style: 'bodyText',
+                                        margin: [0, 14, 0, 18]
+                                    },
+                                    { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 166, y2: 0, lineColor: '#dbe4ef', lineWidth: 1 }] },
+                                    { text: 'StockifyPlus ile kontrollü depo yönetimi', style: 'signature', margin: [0, 14, 0, 0] }
+                                ],
+                                style: 'panel'
+                            }
+                        ],
+                        columnGap: 14
+                    }
+                ],
+                footer: function (currentPage, pageCount) {
+                    return {
+                        columns: [
+                            { text: 'Bu rapor dashboard verileri kullanılarak otomatik oluşturulmuştur.', alignment: 'left' },
+                            { text: `${currentPage} / ${pageCount}`, alignment: 'right' }
+                        ],
+                        margin: [32, 0, 32, 0],
+                        fontSize: 8,
+                        color: '#64748b'
+                    };
+                },
+                styles: {
+                    eyebrow: { fontSize: 9, bold: true, color: '#bae6fd', margin: [0, 0, 0, 8] },
+                    heroTitle: { fontSize: 26, bold: true, color: '#ffffff', margin: [0, 0, 0, 8] },
+                    heroMeta: { fontSize: 9, color: '#d6e2ef' },
+                    scoreNumber: { fontSize: 26, bold: true, color: '#ffffff' },
+                    scoreLabel: { fontSize: 7, bold: true, color: '#bae6fd' },
+                    kpiLabel: { fontSize: 8, bold: true, color: '#64748b' },
+                    kpiValue: { fontSize: 25, bold: true, color: '#0f172a' },
+                    kpiSubtext: { fontSize: 8, color: '#64748b' },
+                    panelTitle: { fontSize: 15, bold: true, color: '#0f172a' },
+                    panelMeta: { fontSize: 8, bold: true, color: '#64748b' },
+                    panel: { margin: [0, 0, 0, 0] },
+                    healthLabel: { fontSize: 9, bold: true, color: '#1769c2' },
+                    healthScore: { fontSize: 16, bold: true, color: '#1769c2' },
+                    bodyText: { fontSize: 9.5, lineHeight: 1.28, color: '#475569' },
+                    tableHead: { fontSize: 7.5, bold: true, color: '#64748b' },
+                    activityTitle: { fontSize: 9, bold: true, color: '#0f172a' },
+                    activityDetail: { fontSize: 8.6, color: '#334155' },
+                    activityTime: { fontSize: 8, color: '#64748b' },
+                    barLabel: { fontSize: 6.5, color: '#64748b' },
+                    signature: { fontSize: 9, bold: true, color: '#0f172a' }
+                }
+            };
+        }
+
+        function buildPdfKpi(label, value, subtext, color) {
+            return {
+                table: {
+                    widths: ['*', 10],
+                    body: [[
+                        {
+                            stack: [
+                                { text: label.toUpperCase(), style: 'kpiLabel' },
+                                { text: String(value), style: 'kpiValue', margin: [0, 7, 0, 4] },
+                                { text: subtext, style: 'kpiSubtext' }
+                            ],
+                            border: [false, false, false, false],
+                            margin: [14, 12, 4, 12]
+                        },
+                        {
+                            canvas: [{ type: 'rect', x: 0, y: 3, w: 8, h: 38, r: 4, color }],
+                            border: [false, false, false, false],
+                            margin: [0, 8, 10, 8]
+                        }
+                    ]]
+                },
+                layout: {
+                    fillColor: () => '#ffffff',
+                    hLineColor: () => '#e2e8f0',
+                    vLineColor: () => '#e2e8f0',
+                    hLineWidth: () => 0.7,
+                    vLineWidth: () => 0.7
+                }
+            };
+        }
+
+        function buildPdfTrendChart() {
+            const width = 315;
+            const height = 118;
+            const plotX = 24;
+            const plotY = 13;
+            const plotWidth = 278;
+            const plotHeight = 76;
+            const minValue = Math.min(...trendValues);
+            const maxValue = Math.max(...trendValues);
+            const range = Math.max(1, maxValue - minValue);
+            const lower = minValue - Math.max(8, Math.round(range * 0.18));
+            const upper = maxValue + Math.max(8, Math.round(range * 0.18));
+            const scaleRange = Math.max(1, upper - lower);
+            const points = trendValues.map((value, index) => ({
+                x: plotX + ((plotWidth / (trendValues.length - 1)) * index),
+                y: plotY + plotHeight - (((value - lower) / scaleRange) * plotHeight),
+                value
+            }));
+            const canvas = [
+                { type: 'rect', x: 0, y: 0, w: width, h: height, r: 8, color: '#f8fbff' }
+            ];
+
+            for (let i = 0; i <= 4; i += 1) {
+                const y = plotY + ((plotHeight / 4) * i);
+                canvas.push({ type: 'line', x1: plotX, y1: y, x2: plotX + plotWidth, y2: y, lineColor: '#e8eef6', lineWidth: 0.7 });
+            }
+
+            points.forEach((point, index) => {
+                if (index === 0) return;
+                const previous = points[index - 1];
+                canvas.push({
+                    type: 'line',
+                    x1: previous.x,
+                    y1: previous.y,
+                    x2: point.x,
+                    y2: point.y,
+                    lineColor: '#2386e8',
+                    lineWidth: 2
+                });
+            });
+
+            points.forEach((point, index) => {
+                canvas.push({ type: 'ellipse', x: point.x, y: point.y, r1: 3.2, r2: 3.2, color: '#2386e8' });
+                canvas.push({ type: 'ellipse', x: point.x, y: point.y, r1: 1.3, r2: 1.3, color: '#ffffff' });
+            });
+
+            return {
+                stack: [
+                    { text: '● Stok Seviyesi', alignment: 'right', fontSize: 7, color: '#2386e8', margin: [0, 0, 14, 4] },
+                    { canvas },
+                    {
+                        columns: trendLabels.map((label) => ({
+                            width: '*',
+                            text: label.slice(0, 3),
+                            style: 'barLabel',
+                            alignment: 'center'
+                        })),
+                        margin: [18, 3, 5, 0]
+                    }
+                ],
+                margin: [0, 12, 0, 0]
+            };
+        }
+
+        function buildPdfPanelHeader(title, meta) {
+            return {
+                columns: [
+                    { text: title, style: 'panelTitle' },
+                    { text: meta, style: 'panelMeta', alignment: 'right' }
+                ]
+            };
+        }
+
+        function buildTrendBars() {
+            const maxValue = Math.max(...trendValues, 1);
+            return trendValues.map((value, index) => {
+                const height = Math.max(16, Math.round((value / maxValue) * 100));
+                return `
+                    <div class="sp-pdf-bar-item">
+                        <div class="sp-pdf-bar-value">${value}</div>
+                        <div class="sp-pdf-bar-track">
+                            <span style="height: ${height}%"></span>
+                        </div>
+                        <small>${escapeHtml(trendLabels[index].slice(0, 3))}</small>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function pdfText(text) {
+            return String(text ?? '')
+                .replace(/Ä±/g, 'i')
+                .replace(/Ä°/g, 'I')
+                .replace(/Ã¼/g, 'u')
+                .replace(/Ãœ/g, 'U')
+                .replace(/Ã¶/g, 'o')
+                .replace(/Ã–/g, 'O')
+                .replace(/Ã§/g, 'c')
+                .replace(/Ã‡/g, 'C')
+                .replace(/ÅŸ/g, 's')
+                .replace(/Åž/g, 'S')
+                .replace(/ÄŸ/g, 'g')
+                .replace(/Äž/g, 'G')
+                .replace(/[^\x20-\x7E]/g, '');
+        }
+
+        function drawWrappedText(pdf, text, x, y, maxWidth, lineHeight, maxLines = 99) {
+            const lines = pdf.splitTextToSize(pdfText(text), maxWidth).slice(0, maxLines);
+            lines.forEach((line, index) => {
+                pdf.text(line, x, y + (index * lineHeight));
+            });
+            return y + (lines.length * lineHeight);
+        }
+
+        function drawKpiCard(pdf, x, y, width, toneColor, label, value, subtext) {
+            pdf.setFillColor(255, 255, 255);
+            pdf.setDrawColor(226, 232, 240);
+            pdf.roundedRect(x, y, width, 30, 3.5, 3.5, 'FD');
+            pdf.setFillColor(toneColor[0], toneColor[1], toneColor[2]);
+            pdf.roundedRect(x + width - 16, y + 6, 9, 18, 4.5, 4.5, 'F');
+            pdf.setTextColor(100, 116, 139);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(7.4);
+            pdf.text(pdfText(label).toUpperCase(), x + 6, y + 8);
+            pdf.setTextColor(15, 23, 42);
+            pdf.setFontSize(19);
+            pdf.text(String(value), x + 6, y + 20);
+            pdf.setTextColor(100, 116, 139);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(7.2);
+            pdf.text(pdfText(subtext), x + 6, y + 26);
+        }
+
+        function drawPanel(pdf, x, y, width, height, title, subtitle) {
+            pdf.setFillColor(255, 255, 255);
+            pdf.setDrawColor(226, 232, 240);
+            pdf.roundedRect(x, y, width, height, 3.5, 3.5, 'FD');
+            pdf.setTextColor(15, 23, 42);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(10);
+            const cleanTitle = pdfText(title);
+            pdf.text(cleanTitle.length > 28 ? `${cleanTitle.slice(0, 27)}...` : cleanTitle, x + 6, y + 9);
+            pdf.setTextColor(100, 116, 139);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(7);
+            pdf.text(pdfText(subtitle).toUpperCase(), x + width - 6, y + 9, { align: 'right' });
+        }
+
+        function buildJsPdfReport(pdf, chartCanvas) {
+            const score = getInventoryHealth();
+            const tone = getHealthTone(score);
+            const activities = recentActivities.slice(0, 5);
+            const chartImage = trendChartInstance?.toBase64Image?.() || chartCanvas.toDataURL('image/png');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const margin = 12;
+            const contentWidth = pageWidth - (margin * 2);
+
+            pdf.setFillColor(247, 250, 252);
+            pdf.rect(0, 0, 210, 297, 'F');
+            pdf.setFillColor(229, 236, 244);
+            pdf.rect(0, 0, 210, 7, 'F');
+
+            pdf.setFillColor(16, 32, 51);
+            pdf.roundedRect(margin, 14, contentWidth, 39, 5, 5, 'F');
+            pdf.setFillColor(31, 111, 184);
+            pdf.roundedRect(pageWidth - margin - 32, 23, 24, 19, 4, 4, 'F');
+            pdf.setTextColor(186, 230, 253);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(8);
+            pdf.text('STOCKIFYPLUS RAPOR', margin + 8, 25);
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(20);
+            pdf.text('Stok Performans Ozeti', margin + 8, 37);
+            pdf.setTextColor(214, 226, 239);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8);
+            pdf.text(`${formatPdfReportDate(new Date())} tarihinde olusturuldu`, margin + 8, 46);
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(18);
+            pdf.text(String(score), pageWidth - margin - 20, 35, { align: 'center' });
+            pdf.setFontSize(6.5);
+            pdf.text('PUAN', pageWidth - margin - 20, 40, { align: 'center' });
+
+            const kpiY = 62;
+            const kpiGap = 5;
+            const kpiWidth = (contentWidth - (kpiGap * 2)) / 3;
+            drawKpiCard(pdf, margin, kpiY, kpiWidth, [239, 68, 68], 'Kritik Stok', dashboardMetrics.lowStockProducts, 'Dikkat gerektiren urun');
+            drawKpiCard(pdf, margin + kpiWidth + kpiGap, kpiY, kpiWidth, [37, 99, 235], 'Toplam Urun', dashboardMetrics.totalProducts, 'Aktif urun karti');
+            drawKpiCard(pdf, margin + ((kpiWidth + kpiGap) * 2), kpiY, kpiWidth, [16, 185, 129], 'Bugunku Hareket', dashboardMetrics.todayMovements, 'Operasyon aktivitesi');
+
+            const chartY = 102;
+            const leftWidth = 121;
+            const rightWidth = contentWidth - leftWidth - 7;
+            drawPanel(pdf, margin, chartY, leftWidth, 78, 'Haftalik Stok Trendi', 'Son 7 gun');
+            pdf.addImage(chartImage, 'PNG', margin + 6, chartY + 16, leftWidth - 12, 54);
+
+            const sideX = margin + leftWidth + 7;
+            drawPanel(pdf, sideX, chartY, rightWidth, 78, 'Stok Sagligi', 'Operasyon');
+            pdf.setFillColor(239, 246, 255);
+            pdf.roundedRect(sideX + 6, chartY + 15, rightWidth - 12, 16, 3, 3, 'F');
+            pdf.setTextColor(31, 111, 184);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(15);
+            pdf.text(`${score}/100`, sideX + 10, chartY + 26);
+            pdf.setTextColor(71, 85, 105);
+            pdf.setFontSize(7.2);
+            pdf.text('envanter puani', sideX + rightWidth - 10, chartY + 25, { align: 'right' });
+            pdf.setTextColor(71, 85, 105);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8);
+            drawWrappedText(pdf, tone.message, sideX + 6, chartY + 39, rightWidth - 12, 4.5, 4);
+            pdf.setFillColor(229, 231, 235);
+            pdf.roundedRect(sideX + 6, chartY + 58, rightWidth - 12, 3.5, 2, 2, 'F');
+            pdf.setFillColor(16, 185, 129);
+            pdf.roundedRect(sideX + 6, chartY + 58, ((rightWidth - 12) * score) / 100, 3.5, 2, 2, 'F');
+
+            const maxTrend = Math.max(...trendValues, 1);
+            const barStartX = sideX + 7;
+            const barBaseY = chartY + 72;
+            const barWidth = 3.8;
+            trendValues.forEach((value, index) => {
+                const barHeight = Math.max(5, (value / maxTrend) * 9);
+                const x = barStartX + (index * 6.2);
+                pdf.setFillColor(237, 242, 247);
+                pdf.roundedRect(x, barBaseY - 10, barWidth, 10, 1.8, 1.8, 'F');
+                pdf.setFillColor(37, 99, 235);
+                pdf.roundedRect(x, barBaseY - barHeight, barWidth, barHeight, 1.8, 1.8, 'F');
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFontSize(5.2);
+                pdf.text(pdfText(trendLabels[index]).slice(0, 3), x + 1.9, barBaseY + 4, { align: 'center' });
+            });
+
+            const bottomY = 189;
+            const bottomWidth = (contentWidth - 6) / 2;
+            drawPanel(pdf, margin, bottomY, bottomWidth, 67, 'Son Hareketler', 'Son kayitlar');
+            const activityRows = activities.length
+                ? activities
+                : [{ title: 'Henuz hareket yok', detail: 'Yeni operasyonlar raporda burada gorunecek.', time: new Date().toISOString() }];
+            let rowY = bottomY + 19;
+            activityRows.slice(0, 4).forEach((item) => {
+                pdf.setTextColor(15, 23, 42);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(7.6);
+                pdf.text(pdfText(item.title).slice(0, 22), margin + 6, rowY);
+                pdf.setTextColor(71, 85, 105);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(7.1);
+                pdf.text(pdfText(item.detail).slice(0, 34), margin + 41, rowY);
+                pdf.setTextColor(100, 116, 139);
+                pdf.setFontSize(6.6);
+                pdf.text(pdfText(formatRelativeTime(item.time)), margin + bottomWidth - 6, rowY, { align: 'right' });
+                pdf.setDrawColor(226, 232, 240);
+                pdf.line(margin + 6, rowY + 4, margin + bottomWidth - 6, rowY + 4);
+                rowY += 10;
+            });
+
+            drawPanel(pdf, margin + bottomWidth + 6, bottomY, bottomWidth, 67, 'Bugunun Odagi', 'Kisa not');
+            pdf.setTextColor(71, 85, 105);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8.1);
+            const note = 'Stok takibi kucuk ve duzenli kontrollerle guclenir. Kritik urunleri azaltmak ve hareket akisinin canli kalmasini saglamak bugunun en degerli kazanimi.';
+            const nextY = drawWrappedText(pdf, note, margin + bottomWidth + 12, bottomY + 21, bottomWidth - 18, 4.6, 6);
+            pdf.setDrawColor(219, 228, 239);
+            pdf.line(margin + bottomWidth + 12, nextY + 5, margin + contentWidth - 6, nextY + 5);
+            pdf.setTextColor(15, 23, 42);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(7.6);
+            pdf.text('StockifyPlus ile kontrollu depo yonetimi', margin + bottomWidth + 12, nextY + 14);
+
+            pdf.setTextColor(100, 116, 139);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(7);
+            pdf.text('Bu rapor dashboard verileri kullanilarak otomatik olusturulmustur.', margin, 283);
+            pdf.text('1 / 1', pageWidth - margin, 283, { align: 'right' });
+        }
+
+        function buildPdfReportNode(chartCanvas) {
+            const score = getInventoryHealth();
+            const tone = getHealthTone(score);
+            const chartImage = trendChartInstance?.toBase64Image?.() || chartCanvas.toDataURL('image/png');
+            const activities = recentActivities.slice(0, 5);
+            const activityMarkup = activities.length
+                ? activities.map(item => `
+                    <div class="sp-pdf-activity">
+                        <strong>${escapeHtml(item.title)}</strong>
+                        <span>${escapeHtml(item.detail)}</span>
+                        <small>${formatRelativeTime(item.time)}</small>
+                    </div>
+                `).join('')
+                : '<div class="sp-pdf-activity"><strong>Henüz hareket yok</strong><span>Yeni operasyonlar raporda burada görünecek.</span><small>Bugün</small></div>';
+
+            const report = document.createElement('section');
+            report.className = 'sp-pdf-report';
+            report.innerHTML = `
+                <header class="sp-pdf-hero">
+                    <div>
+                        <span class="sp-pdf-eyebrow">StockifyPlus Operasyon Raporu</span>
+                        <h1>Stok Performans Özeti</h1>
+                        <p>${formatReportDate(new Date())} tarihinde oluşturuldu.</p>
+                    </div>
+                    <div class="sp-pdf-score">
+                        <span>${score}</span>
+                        <small>/ 100</small>
+                    </div>
+                </header>
+
+                <section class="sp-pdf-kpi-grid">
+                    <div class="sp-pdf-kpi sp-pdf-kpi-danger">
+                        <span>Kritik Stok</span>
+                        <strong>${dashboardMetrics.lowStockProducts}</strong>
+                        <small>Dikkat gerektiren ürün</small>
+                    </div>
+                    <div class="sp-pdf-kpi sp-pdf-kpi-primary">
+                        <span>Toplam Ürün</span>
+                        <strong>${dashboardMetrics.totalProducts}</strong>
+                        <small>Aktif ürün kartı</small>
+                    </div>
+                    <div class="sp-pdf-kpi sp-pdf-kpi-success">
+                        <span>Bugünkü Hareket</span>
+                        <strong>${dashboardMetrics.todayMovements}</strong>
+                        <small>Operasyon aktivitesi</small>
+                    </div>
+                </section>
+
+                <section class="sp-pdf-two-column">
+                    <div class="sp-pdf-panel sp-pdf-chart-panel">
+                        <div class="sp-pdf-panel-title">
+                            <span>Haftalık Stok Trendi</span>
+                            <small>Son 7 gün görünümü</small>
+                        </div>
+                        <img src="${chartImage}" alt="Haftalık Stok Trendi">
+                    </div>
+                    <div class="sp-pdf-panel sp-pdf-health-panel">
+                        <div class="sp-pdf-panel-title">
+                            <span>${tone.label}</span>
+                            <small>Operasyon yorumu</small>
+                        </div>
+                        <p>${tone.message}</p>
+                        <div class="sp-pdf-health-meter">
+                            <span style="width: ${score}%"></span>
+                        </div>
+                        <div class="sp-pdf-mini-bars">
+                            ${buildTrendBars()}
+                        </div>
+                    </div>
+                </section>
+
+                <section class="sp-pdf-two-column sp-pdf-bottom-grid">
+                    <div class="sp-pdf-panel">
+                        <div class="sp-pdf-panel-title">
+                            <span>Son Hareketler</span>
+                            <small>Canlı akıştan özet</small>
+                        </div>
+                        <div class="sp-pdf-activity-list">
+                            ${activityMarkup}
+                        </div>
+                    </div>
+                    <div class="sp-pdf-panel sp-pdf-note">
+                        <div class="sp-pdf-panel-title">
+                            <span>Bugünün Odağı</span>
+                            <small>Kısa motivasyon</small>
+                        </div>
+                        <p>Stok takibi küçük, düzenli kontrollerle güçlenir. Kritik ürünleri azaltmak ve hareket akışını canlı tutmak bugünün en değerli kazanımı.</p>
+                        <div class="sp-pdf-signature">StockifyPlus ile kontrollü depo yönetimi</div>
+                    </div>
+                </section>
+            `;
+
+            return report;
+        }
+
+        function renderActivities(items) {
+            if (!activityList) return;
+
+            if (!items || items.length === 0) {
+                recentActivities = [];
+                activityList.innerHTML = `
+                    <div class="activity-item">
+                        <strong>Henüz hareket yok</strong>
+                        <div class="activity-time">Yeni kayıtlar burada görünecek</div>
+                    </div>`;
+                return;
+            }
+
+            recentActivities = items;
+            activityList.innerHTML = items.map(item => `
+                <div class="activity-item">
+                    <strong>${escapeHtml(item.title)}:</strong> ${escapeHtml(item.detail)}
+                    <div class="activity-time">${formatRelativeTime(item.time)}</div>
+                </div>
+            `).join('');
+        }
+
+        async function loadRecentActivities() {
+            try {
+                const response = await fetch('@Url.Action("RecentActivities", "Home")?take=5', {
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Aktivite verileri alınamadı');
+                }
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.message || 'Aktivite verileri alınamadı');
+                }
+
+                renderActivities(result.items);
+            } catch (error) {
+                if (activityList) {
+                    activityList.innerHTML = `
+                        <div class="activity-item">
+                            <strong>Bağlantı hatası</strong>
+                            <div class="activity-time">Son hareketler alınamadı</div>
+                        </div>`;
+                }
+            }
+        }
+
+        loadRecentActivities();
+        setInterval(loadRecentActivities, 10000);
+
+        const trendCtx = document.getElementById('trendChart');
+        if (trendCtx) {
+            trendChartInstance = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [
+                        {
+                            label: 'Stok Seviyesi',
+                            data: trendValues,
+                            borderColor: '#1e88e5',
+                            backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#1e88e5',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 0,
+                            right: 4,
+                            bottom: 0,
+                            left: 0
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 8,
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: { padding: 4 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { padding: 3 }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>

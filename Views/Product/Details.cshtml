@@ -1,0 +1,87 @@
+@{
+    var product = (StockifyPlus.Models.Product)ViewData.Model!;
+    ViewBag.Title = "Ürün Detayları";
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+    var vatRate = 0.20m;
+    var taxAmount = Math.Round(product.Price * vatRate / (1 + vatRate), 2);
+    var priceWithTax = product.Price + taxAmount;
+}
+
+<div class="sp-page-shell">
+<div class="sp-form-grid">
+    <div class="sp-form-card">
+            <div class="sp-product-detail-heading">
+                <span class="sp-product-detail-heading-icon">
+                    <i class="fas fa-box"></i>
+                </span>
+                <h3>@product.Name</h3>
+            </div>
+            <div class="card-body">
+                <div class="sp-detail-grid mb-4">
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">SKU</span>
+                        <span class="sp-detail-value">@product.SKU</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Kategori</span>
+                        <span class="sp-detail-value">@product.Category?.Name</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Fiyat</span>
+                        <span class="sp-detail-value">@product.Price.ToString("N2", trCulture) ₺</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Vergi Dahil</span>
+                        <span class="sp-detail-value">@priceWithTax.ToString("N2", trCulture) ₺</span>
+                        <small class="d-block sp-muted">Vergi: @taxAmount.ToString("N2", trCulture) ₺</small>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Mevcut Stok</span>
+                        <span class="badge bg-primary fs-6">@product.StockQuantity</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Kritik Seviye</span>
+                        <span class="badge bg-warning fs-6">@product.CriticalStockLevel</span>
+                    </div>
+                    <div class="sp-detail-item">
+                        <span class="sp-detail-label">Durum</span>
+                        @if (product.IsActive)
+                        {
+                            <span class="badge bg-success">Aktif</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Pasif</span>
+                        }
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <p><strong>Açıklama:</strong></p>
+                <p>@(string.IsNullOrEmpty(product.Description) ? "-" : product.Description)</p>
+            </div>
+    </div>
+    <div class="sp-help-card">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-tools"></i> İşlemler
+                </h6>
+                <div class="d-grid gap-2">
+                    <a href="@Url.Action("Edit", "Product", new { id = product.Id })" class="btn btn-warning btn-custom">
+                        <i class="fas fa-edit"></i> Düzenle
+                    </a>
+                    <a href="@Url.Action("Delete", "Product", new { id = product.Id })" class="btn btn-danger btn-custom">
+                        <i class="fas fa-trash"></i> Sil
+                    </a>
+                    <a href="@Url.Action("StockIn", "StockMovement")" class="btn btn-success btn-custom">
+                        <i class="fas fa-arrow-up"></i> Stok Ekle
+                    </a>
+                    <a href="@Url.Action("StockOut", "StockMovement")" class="btn btn-danger btn-custom">
+                        <i class="fas fa-arrow-down"></i> Stok Çıkar
+                    </a>
+                </div>
+            </div>
+    </div>
+</div>
+</div>

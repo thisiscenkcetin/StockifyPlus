@@ -1,0 +1,57 @@
+@model StockifyPlus.Models.ViewModels.NotificationSettingsViewModel
+@{
+    ViewBag.Title = "Stok Bildirimi";
+}
+
+<div class="sp-page-shell">
+<div class="card sp-surface sp-settings-card">
+    <div class="card-body">
+        <div class="sp-page-header mb-4">
+            <h4 class="sp-page-title">
+                <i class="fas fa-bell"></i>Stok Bildirimi Ayarlari
+            </h4>
+            <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Dashboard
+            </a>
+        </div>
+
+        <p class="text-muted mb-4">
+            Bu ekrandan kritik stok icin anlik push bildirimini ve gece ozet raporu gidecek e-posta adresini yonetebilirsiniz.
+        </p>
+
+        <form asp-action="Index" method="post" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="sp-switch-row mb-4">
+                <label class="form-check-label fw-semibold" asp-for="PushEnabled">
+                    Anlik push bildirimi aktif olsun
+                </label>
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" asp-for="PushEnabled" />
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="AlertEmail" class="form-label fw-semibold"></label>
+                <input asp-for="AlertEmail" class="form-control" placeholder="admin@firma.com" />
+                <span asp-validation-for="AlertEmail" class="text-danger"></span>
+                <div class="form-text">Her gece 00:00 kritik stok raporu bu adrese gonderilir.</div>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger mt-3">
+                    Formu kaydetmeden once hatalari duzeltin.
+                </div>
+            }
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Kaydet
+                </button>
+                <a href="@Url.Action("Index", "Home")" class="btn btn-light border">Vazgec</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>

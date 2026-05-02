@@ -1,0 +1,143 @@
+@model StockifyPlus.Controllers.HomeController.LogsPageViewModel
+@{
+    ViewBag.Title = "Log Kayıtları";
+    var trCulture = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="sp-page-shell sp-log-page">
+    <div class="sp-page-header">
+        <div>
+            <h2 class="sp-page-title">
+                <i class="fas fa-clipboard-list"></i> Log Kayıtları
+            </h2>
+            <div class="sp-muted">Uygulama, giriş, HTTP istekleri, bildirim ve sistem kayıtları.</div>
+        </div>
+        <a href="@Url.Action("Index", "Home")" class="btn btn-secondary btn-custom">
+            <i class="fas fa-arrow-left"></i> Dashboard
+        </a>
+    </div>
+
+    <div class="sp-log-stats">
+        <div class="sp-log-stat">
+            <span>Toplam Kayıt</span>
+            <strong>@Model.TotalCount</strong>
+        </div>
+        <div class="sp-log-stat">
+            <span>Gosterilen</span>
+            <strong>@Model.Entries.Count</strong>
+        </div>
+        <div class="sp-log-stat">
+            <span>Filtre Sonucu</span>
+            <strong>@Model.FilteredCount</strong>
+        </div>
+        <div class="sp-log-stat">
+            <span>Dosya</span>
+            <strong>@Model.Files.Count</strong>
+        </div>
+    </div>
+
+    <div class="card sp-surface sp-filter-card">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label for="q" class="form-label">
+                        <i class="fas fa-search"></i> Kayıt Ara
+                    </label>
+                    <input id="q" name="q" class="form-control" value="@Model.Query" placeholder="Login, HTTP, urun, hata..." />
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label for="level" class="form-label">
+                        <i class="fas fa-signal"></i> Seviye
+                    </label>
+                    <select id="level" name="level" class="form-select">
+                        <option value="">Tüm seviyeler</option>
+                        @foreach (var level in Model.Levels)
+                        {
+                            <option value="@level" selected="@(Model.Level == level)">@level</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <label for="source" class="form-label">
+                        <i class="fas fa-layer-group"></i> Kaynak
+                    </label>
+                    <select id="source" name="source" class="form-select">
+                        <option value="">Tüm kaynaklar</option>
+                        @foreach (var source in Model.Sources)
+                        {
+                            <option value="@source" selected="@(Model.Source == source)">@source</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-1 col-md-4">
+                    <label for="take" class="form-label">Limit</label>
+                    <select id="take" name="take" class="form-select">
+                        @foreach (var limit in new[] { 100, 250, 500, 1000, 2000 })
+                        {
+                            <option value="@limit" selected="@(Model.Take == limit)">@limit</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-custom flex-fill">
+                        <i class="fas fa-filter"></i> Filtrele
+                    </button>
+                    <a href="@Url.Action("Logs", "Home")" class="btn btn-secondary btn-custom" title="Temizle" aria-label="Temizle">
+                        <i class="fas fa-rotate-left"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="sp-log-table-wrap">
+        <table class="table sp-log-table">
+            <colgroup>
+                <col class="sp-log-col-time" />
+                <col class="sp-log-col-level" />
+                <col class="sp-log-col-category" />
+                <col class="sp-log-col-source" />
+                <col class="sp-log-col-message" />
+                <col class="sp-log-col-file" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>Zaman</th>
+                    <th>Seviye</th>
+                    <th>Tip</th>
+                    <th>Kaynak</th>
+                    <th>Mesaj</th>
+                    <th>Dosya</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Entries.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="sp-log-empty">Kayıt bulunamadı.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var entry in Model.Entries)
+                    {
+                        <tr>
+                            <td class="sp-log-time">
+                                @(entry.Timestamp?.ToLocalTime().ToString("dd MMM HH:mm:ss", trCulture) ?? "-")
+                            </td>
+                            <td>
+                                <span class="sp-log-level sp-log-level-@entry.Level.ToLowerInvariant()">@entry.Level</span>
+                            </td>
+                            <td>
+                                <span class="sp-log-category">@entry.Category</span>
+                            </td>
+                            <td class="sp-log-source" title="@entry.Source">@entry.Source</td>
+                            <td class="sp-log-message">@entry.Message</td>
+                            <td class="sp-log-file">@entry.FileName</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
