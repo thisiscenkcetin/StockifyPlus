@@ -89,4 +89,5 @@ GROQ_API_KEY=
 Bu proje stok yönetimi sürecini yazılım mühendisliği bakışıyla ele almak için hazırlanmıştır. Veri modeli, iş kuralları, kullanıcı arayüzü, dış servis entegrasyonu, canlı bildirim, raporlama ve kontrollü StockAI işlemleri birlikte değerlendirilmiştir.
 
 dev.cenkcetin@gmail.com
+
 Bu proje MIT lisansı ile paylaşılmıştır.
