@@ -45,8 +45,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ürünleri listelemede hata");
-                ModelState.AddModelError("", "Ürünleri listelemede hata oluþtu.");
+                _logger.LogError(ex, "ÃœrÃ¼nleri listelemede hata");
+                ModelState.AddModelError("", "ÃœrÃ¼nleri listelemede hata oluÅŸtu.");
                 
                 var emptyResult = new PagedResult<Models.Product>
                 {
@@ -85,8 +85,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Düþük stok ürünlerini getirmede hata");
-                ModelState.AddModelError("", "Düþük stok ürünlerini getirmede hata oluþtu.");
+                _logger.LogError(ex, "DÃ¼ÅŸÃ¼k stok Ã¼rÃ¼nlerini getirmede hata");
+                ModelState.AddModelError("", "DÃ¼ÅŸÃ¼k stok Ã¼rÃ¼nlerini getirmede hata oluÅŸtu.");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -99,13 +99,13 @@ namespace StockifyPlus.Controllers
             }
             catch (NotFoundException)
             {
-                _logger.LogWarning($"Ürün bulunamadý: {id}");
+                _logger.LogWarning($"ÃœrÃ¼n bulunamadÄ±: {id}");
                 return NotFound();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ürün detaylarýný getirmede hata: {id}");
-                ModelState.AddModelError("", "Ürün detaylarýný getirmede hata oluþtu.");
+                _logger.LogError(ex, $"ÃœrÃ¼n detaylarÄ±nÄ± getirmede hata: {id}");
+                ModelState.AddModelError("", "ÃœrÃ¼n detaylarÄ±nÄ± getirmede hata oluÅŸtu.");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -120,7 +120,7 @@ namespace StockifyPlus.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kategori listesini getirmede hata");
-                ModelState.AddModelError("", "Kategorileri getirmede hata oluþtu.");
+                ModelState.AddModelError("", "Kategorileri getirmede hata oluÅŸtu.");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -134,7 +134,7 @@ namespace StockifyPlus.Controllers
             {
                 if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(sku))
                 {
-                    ModelState.AddModelError("", "Ürün adý ve SKU boþ býrakýlamaz.");
+                    ModelState.AddModelError("", "ÃœrÃ¼n adÄ± ve SKU boÅŸ bÄ±rakÄ±lamaz.");
                     var categories = await _categoryService.GetAllActiveCategoriesAsync();
                     ViewBag.Categories = categories;
                     return View();
@@ -142,14 +142,14 @@ namespace StockifyPlus.Controllers
 
                 if (!TryParseDecimal(price, out var parsedPrice))
                 {
-                    ModelState.AddModelError("price", "Fiyat formatý geçersiz. Örnek: 53.400,00");
+                    ModelState.AddModelError("price", "Fiyat formatÄ± geÃ§ersiz. Ã–rnek: 53.400,00");
                     var categories = await _categoryService.GetAllActiveCategoriesAsync();
                     ViewBag.Categories = categories;
                     return View();
                 }
 
                 await _productService.CreateProductAsync(categoryId, name, sku, description, parsedPrice, criticalLevel, stockQuantity);
-                TempData["SuccessMessage"] = "Ürün baþarýyla oluþturuldu.";
+                TempData["SuccessMessage"] = "ÃœrÃ¼n baÅŸarÄ±yla oluÅŸturuldu.";
                 return RedirectToAction(nameof(Index));
             }
             catch (ValidationException ex)
@@ -168,8 +168,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ürün oluþturmada hata");
-                ModelState.AddModelError("", "Ürün oluþturmada hata oluþtu.");
+                _logger.LogError(ex, "ÃœrÃ¼n oluÅŸturmada hata");
+                ModelState.AddModelError("", "ÃœrÃ¼n oluÅŸturmada hata oluÅŸtu.");
                 var categories = await _categoryService.GetAllActiveCategoriesAsync();
                 ViewBag.Categories = categories;
                 return View();
@@ -184,7 +184,7 @@ namespace StockifyPlus.Controllers
             {
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    return BadRequest(new { success = false, message = "Kategori adý boþ olamaz." });
+                    return BadRequest(new { success = false, message = "Kategori adÄ± boÅŸ olamaz." });
                 }
 
                 var category = await _categoryService.CreateCategoryAsync(name, description);
@@ -200,8 +200,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Hýzlý kategori oluþturmada hata");
-                return StatusCode(500, new { success = false, message = "Kategori oluþturulamadý." });
+                _logger.LogError(ex, "HÄ±zlÄ± kategori oluÅŸturmada hata");
+                return StatusCode(500, new { success = false, message = "Kategori oluÅŸturulamadÄ±." });
             }
         }
 
@@ -213,7 +213,7 @@ namespace StockifyPlus.Controllers
             {
                 if (request == null || string.IsNullOrWhiteSpace(request.Barcode))
                 {
-                    return BadRequest(new { success = false, message = "Barkod boþ olamaz." });
+                    return BadRequest(new { success = false, message = "Barkod boÅŸ olamaz." });
                 }
 
                 var barcode = request.Barcode.Trim();
@@ -225,7 +225,7 @@ namespace StockifyPlus.Controllers
 
                 if (product == null)
                 {
-                    return NotFound(new { success = false, message = "Bu barkoda ait aktif ürün bulunamadý." });
+                    return NotFound(new { success = false, message = "Bu barkoda ait aktif Ã¼rÃ¼n bulunamadÄ±." });
                 }
 
                 return Json(new
@@ -239,8 +239,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Barkod ile ürün arama sýrasýnda hata oluþtu.");
-                return StatusCode(500, new { success = false, message = "Barkod arama iþlemi sýrasýnda sunucu hatasý oluþtu." });
+                _logger.LogError(ex, "Barkod ile Ã¼rÃ¼n arama sÄ±rasÄ±nda hata oluÅŸtu.");
+                return StatusCode(500, new { success = false, message = "Barkod arama iÅŸlemi sÄ±rasÄ±nda sunucu hatasÄ± oluÅŸtu." });
             }
         }
 
@@ -261,7 +261,7 @@ namespace StockifyPlus.Controllers
                 var worksheet = package.Workbook.Worksheets.Add("Urunler");
 
                 worksheet.Cells[1, 1].Value = "Stok Kodu (SKU)";
-                worksheet.Cells[1, 2].Value = "Ürün Adý";
+                worksheet.Cells[1, 2].Value = "ÃœrÃ¼n AdÄ±";
                 worksheet.Cells[1, 3].Value = "Kategori";
                 worksheet.Cells[1, 4].Value = "Fiyat";
                 worksheet.Cells[1, 5].Value = "Miktar";
@@ -295,8 +295,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Excel dýþa aktarým sýrasýnda hata oluþtu.");
-                TempData["ErrorMessage"] = "Excel dýþa aktarým iþlemi baþarýsýz oldu.";
+                _logger.LogError(ex, "Excel dÄ±ÅŸa aktarÄ±m sÄ±rasÄ±nda hata oluÅŸtu.");
+                TempData["ErrorMessage"] = "Excel dÄ±ÅŸa aktarÄ±m iÅŸlemi baÅŸarÄ±sÄ±z oldu.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -311,12 +311,12 @@ namespace StockifyPlus.Controllers
 
                 if (file == null || file.Length == 0)
                 {
-                    return BadRequest(new { success = false, message = "Lütfen geçerli bir Excel dosyasý seçin." });
+                    return BadRequest(new { success = false, message = "LÃ¼tfen geÃ§erli bir Excel dosyasÄ± seÃ§in." });
                 }
 
                 if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
                 {
-                    return BadRequest(new { success = false, message = "Sadece .xlsx uzantýlý dosyalar desteklenir." });
+                    return BadRequest(new { success = false, message = "Sadece .xlsx uzantÄ±lÄ± dosyalar desteklenir." });
                 }
 
                 var categories = await _context.Categories.ToListAsync();
@@ -344,7 +344,7 @@ namespace StockifyPlus.Controllers
 
                 if (worksheet == null || worksheet.Dimension == null || worksheet.Dimension.Rows < 2)
                 {
-                    return BadRequest(new { success = false, message = "Excel dosyasýnda iþlenecek satýr bulunamadý." });
+                    return BadRequest(new { success = false, message = "Excel dosyasÄ±nda iÅŸlenecek satÄ±r bulunamadÄ±." });
                 }
 
                 var rowCount = worksheet.Dimension.Rows;
@@ -362,21 +362,21 @@ namespace StockifyPlus.Controllers
                         if (string.IsNullOrWhiteSpace(sku) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(categoryName))
                         {
                             skippedCount++;
-                            errors.Add($"Satýr {row}: SKU, Ürün Adý ve Kategori zorunludur.");
+                            errors.Add($"SatÄ±r {row}: SKU, ÃœrÃ¼n AdÄ± ve Kategori zorunludur.");
                             continue;
                         }
 
                         if (!TryParseDecimal(priceText, out var price))
                         {
                             skippedCount++;
-                            errors.Add($"Satýr {row}: Fiyat deðeri geçersiz ({priceText}).");
+                            errors.Add($"SatÄ±r {row}: Fiyat deÄŸeri geÃ§ersiz ({priceText}).");
                             continue;
                         }
 
                         if (!int.TryParse(quantityText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var quantity))
                         {
                             skippedCount++;
-                            errors.Add($"Satýr {row}: Miktar deðeri geçersiz ({quantityText}).");
+                            errors.Add($"SatÄ±r {row}: Miktar deÄŸeri geÃ§ersiz ({quantityText}).");
                             continue;
                         }
 
@@ -385,7 +385,7 @@ namespace StockifyPlus.Controllers
                             category = new Category
                             {
                                 Name = categoryName,
-                                Description = "Excel import ile oluþturuldu.",
+                                Description = "Excel import ile oluÅŸturuldu.",
                                 IsActive = true
                             };
 
@@ -406,7 +406,7 @@ namespace StockifyPlus.Controllers
                             existingProduct.StockQuantity = Math.Max(0, existingProduct.StockQuantity + quantity);
                             existingProduct.Category = category;
                             existingProduct.Description = string.IsNullOrWhiteSpace(existingProduct.Description)
-                                ? "Excel import güncellemesi"
+                                ? "Excel import gÃ¼ncellemesi"
                                 : existingProduct.Description;
                             existingProduct.IsActive = true;
                             updatedCount++;
@@ -433,7 +433,7 @@ namespace StockifyPlus.Controllers
                     catch (Exception rowEx)
                     {
                         skippedCount++;
-                        errors.Add($"Satýr {row}: {rowEx.Message}");
+                        errors.Add($"SatÄ±r {row}: {rowEx.Message}");
                     }
                 }
 
@@ -442,7 +442,7 @@ namespace StockifyPlus.Controllers
                 return Json(new
                 {
                     success = true,
-                    message = "Excel içeri aktarma tamamlandý.",
+                    message = "Excel iÃ§eri aktarma tamamlandÄ±.",
                     totalRows = rowCount - 1,
                     created = createdCount,
                     updated = updatedCount,
@@ -452,8 +452,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Excel içeri aktarma sýrasýnda hata oluþtu.");
-                return StatusCode(500, new { success = false, message = "Excel içeri aktarma sýrasýnda sunucu hatasý oluþtu." });
+                _logger.LogError(ex, "Excel iÃ§eri aktarma sÄ±rasÄ±nda hata oluÅŸtu.");
+                return StatusCode(500, new { success = false, message = "Excel iÃ§eri aktarma sÄ±rasÄ±nda sunucu hatasÄ± oluÅŸtu." });
             }
         }
         public async Task<IActionResult> Edit(int id)
@@ -471,8 +471,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ürün düzenleme sayfasýný getirmede hata: {id}");
-                ModelState.AddModelError("", "Ürün getirilemedi.");
+                _logger.LogError(ex, $"ÃœrÃ¼n dÃ¼zenleme sayfasÄ±nÄ± getirmede hata: {id}");
+                ModelState.AddModelError("", "ÃœrÃ¼n getirilemedi.");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -486,7 +486,7 @@ namespace StockifyPlus.Controllers
             {
                 if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(sku))
                 {
-                    ModelState.AddModelError("", "Ürün adý ve SKU boþ býrakýlamaz.");
+                    ModelState.AddModelError("", "ÃœrÃ¼n adÄ± ve SKU boÅŸ bÄ±rakÄ±lamaz.");
                     var product = await _productService.GetProductByIdAsync(id);
                     var categories = await _categoryService.GetAllActiveCategoriesAsync();
                     ViewBag.Categories = categories;
@@ -495,7 +495,7 @@ namespace StockifyPlus.Controllers
 
                 if (!TryParseDecimal(price, out var parsedPrice))
                 {
-                    ModelState.AddModelError("price", "Fiyat formatý geçersiz. Örnek: 53.400,00");
+                    ModelState.AddModelError("price", "Fiyat formatÄ± geÃ§ersiz. Ã–rnek: 53.400,00");
                     var product = await _productService.GetProductByIdAsync(id);
                     var categories = await _categoryService.GetAllActiveCategoriesAsync();
                     ViewBag.Categories = categories;
@@ -503,7 +503,7 @@ namespace StockifyPlus.Controllers
                 }
 
                 await _productService.UpdateProductAsync(id, categoryId, name, sku, description, parsedPrice, criticalLevel);
-                TempData["SuccessMessage"] = "Ürün baþarýyla güncellendi.";
+                TempData["SuccessMessage"] = "ÃœrÃ¼n baÅŸarÄ±yla gÃ¼ncellendi.";
                 return RedirectToAction(nameof(Index));
             }
             catch (NotFoundException)
@@ -528,8 +528,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ürün güncellemede hata: {id}");
-                ModelState.AddModelError("", "Ürün güncellemede hata oluþtu.");
+                _logger.LogError(ex, $"ÃœrÃ¼n gÃ¼ncellemede hata: {id}");
+                ModelState.AddModelError("", "ÃœrÃ¼n gÃ¼ncellemede hata oluÅŸtu.");
                 var product = await _productService.GetProductByIdAsync(id);
                 var categories = await _categoryService.GetAllActiveCategoriesAsync();
                 ViewBag.Categories = categories;
@@ -549,8 +549,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ürün barkod sayfasýný getirmede hata: {id}");
-                TempData["ErrorMessage"] = "Barkod sayfasý açýlamadý.";
+                _logger.LogError(ex, $"ÃœrÃ¼n barkod sayfasÄ±nÄ± getirmede hata: {id}");
+                TempData["ErrorMessage"] = "Barkod sayfasÄ± aÃ§Ä±lamadÄ±.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -567,7 +567,7 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ürün silme sayfasýný getirmede hata: {id}");
+                _logger.LogError(ex, $"ÃœrÃ¼n silme sayfasÄ±nÄ± getirmede hata: {id}");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -578,7 +578,7 @@ namespace StockifyPlus.Controllers
             try
             {
                 await _productService.DeactivateProductAsync(id);
-                TempData["SuccessMessage"] = "Ürün baþarýyla silindi.";
+                TempData["SuccessMessage"] = "ÃœrÃ¼n baÅŸarÄ±yla silindi.";
                 return RedirectToAction(nameof(Index));
             }
             catch (NotFoundException)
@@ -587,8 +587,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ürün silmede hata: {id}");
-                ModelState.AddModelError("", "Ürün silmede hata oluþtu.");
+                _logger.LogError(ex, $"ÃœrÃ¼n silmede hata: {id}");
+                ModelState.AddModelError("", "ÃœrÃ¼n silmede hata oluÅŸtu.");
                 var product = await _productService.GetProductByIdAsync(id);
                 return View(product);
             }

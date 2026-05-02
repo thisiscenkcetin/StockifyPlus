@@ -13,4 +13,6 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+EXPOSE 8080
 CMD ["sh", "-c", "dotnet StockifyPlus.dll --urls http://0.0.0.0:${PORT:-8080}"]

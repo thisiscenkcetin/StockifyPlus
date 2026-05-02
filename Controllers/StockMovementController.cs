@@ -29,7 +29,7 @@ namespace StockifyPlus.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Stok hareketlerini listelemede hata");
-                ModelState.AddModelError("", "Stok hareketlerini listelemede hata oluþtu.");
+                ModelState.AddModelError("", "Stok hareketlerini listelemede hata oluÅŸtu.");
                 return View(new List<Models.StockMovement>());
             }
         }
@@ -48,8 +48,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Ürün hareketlerini getirmede hata: {productId}");
-                ModelState.AddModelError("", "Ürün hareketlerini getirmede hata oluþtu.");
+                _logger.LogError(ex, $"ÃœrÃ¼n hareketlerini getirmede hata: {productId}");
+                ModelState.AddModelError("", "ÃœrÃ¼n hareketlerini getirmede hata oluÅŸtu.");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -69,8 +69,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Tarih aralýðý hareketlerini getirmede hata");
-                ModelState.AddModelError("", "Hareketleri getirmede hata oluþtu.");
+                _logger.LogError(ex, "Tarih aralÄ±ÄŸÄ± hareketlerini getirmede hata");
+                ModelState.AddModelError("", "Hareketleri getirmede hata oluÅŸtu.");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -84,7 +84,7 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ürün listesini getirmede hata");
+                _logger.LogError(ex, "ÃœrÃ¼n listesini getirmede hata");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -96,14 +96,14 @@ namespace StockifyPlus.Controllers
             {
                 if (quantity <= 0)
                 {
-                    ModelState.AddModelError(nameof(quantity), "Giriþ miktarý 0'dan büyük olmalýdýr.");
+                    ModelState.AddModelError(nameof(quantity), "GiriÅŸ miktarÄ± 0'dan bÃ¼yÃ¼k olmalÄ±dÄ±r.");
                     var products = await _productService.GetAllActiveProductsAsync();
                     ViewBag.Products = products;
                     return View();
                 }
 
                 await _stockMovementService.RecordStockInAsync(productId, quantity, description);
-                TempData["SuccessMessage"] = $"{quantity} ürün baþarýyla stoka girildi.";
+                TempData["SuccessMessage"] = $"{quantity} Ã¼rÃ¼n baÅŸarÄ±yla stoka girildi.";
                 return RedirectToAction(nameof(Index));
             }
             catch (ValidationException ex)
@@ -122,8 +122,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Stok giriþi kaydederken hata");
-                ModelState.AddModelError("", "Stok giriþi kaydederken hata oluþtu.");
+                _logger.LogError(ex, "Stok giriÅŸi kaydederken hata");
+                ModelState.AddModelError("", "Stok giriÅŸi kaydederken hata oluÅŸtu.");
                 var products = await _productService.GetAllActiveProductsAsync();
                 ViewBag.Products = products;
                 return View();
@@ -139,7 +139,7 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ürün listesini getirmede hata");
+                _logger.LogError(ex, "ÃœrÃ¼n listesini getirmede hata");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -151,14 +151,14 @@ namespace StockifyPlus.Controllers
             {
                 if (quantity <= 0)
                 {
-                    ModelState.AddModelError(nameof(quantity), "Çýkýþ miktarý 0'dan büyük olmalýdýr.");
+                    ModelState.AddModelError(nameof(quantity), "Ã‡Ä±kÄ±ÅŸ miktarÄ± 0'dan bÃ¼yÃ¼k olmalÄ±dÄ±r.");
                     var products = await _productService.GetAllActiveProductsAsync();
                     ViewBag.Products = products;
                     return View();
                 }
 
                 await _stockMovementService.RecordStockOutAsync(productId, quantity, description);
-                TempData["SuccessMessage"] = $"{quantity} ürün baþarýyla stoktan çýkartýldý.";
+                TempData["SuccessMessage"] = $"{quantity} Ã¼rÃ¼n baÅŸarÄ±yla stoktan Ã§Ä±kartÄ±ldÄ±.";
                 return RedirectToAction(nameof(Index));
             }
             catch (ValidationException ex)
@@ -177,8 +177,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Stok çýkýþý kaydederken hata");
-                ModelState.AddModelError("", "Stok çýkýþý kaydederken hata oluþtu.");
+                _logger.LogError(ex, "Stok Ã§Ä±kÄ±ÅŸÄ± kaydederken hata");
+                ModelState.AddModelError("", "Stok Ã§Ä±kÄ±ÅŸÄ± kaydederken hata oluÅŸtu.");
                 var products = await _productService.GetAllActiveProductsAsync();
                 ViewBag.Products = products;
                 return View();
@@ -194,7 +194,7 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ürün listesini getirmede hata");
+                _logger.LogError(ex, "ÃœrÃ¼n listesini getirmede hata");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -205,7 +205,7 @@ namespace StockifyPlus.Controllers
             try
             {
                 await _stockMovementService.RecordStockAdjustmentAsync(productId, quantity, description);
-                TempData["SuccessMessage"] = "Stok ayarlamasý baþarýyla kaydedildi.";
+                TempData["SuccessMessage"] = "Stok ayarlamasÄ± baÅŸarÄ±yla kaydedildi.";
                 return RedirectToAction(nameof(Index));
             }
             catch (ValidationException ex)
@@ -224,8 +224,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Stok ayarlamasý kaydederken hata");
-                ModelState.AddModelError("", "Stok ayarlamasý kaydederken hata oluþtu.");
+                _logger.LogError(ex, "Stok ayarlamasÄ± kaydederken hata");
+                ModelState.AddModelError("", "Stok ayarlamasÄ± kaydederken hata oluÅŸtu.");
                 var products = await _productService.GetAllActiveProductsAsync();
                 ViewBag.Products = products;
                 return View();
@@ -238,12 +238,12 @@ namespace StockifyPlus.Controllers
             try
             {
                 await _stockMovementService.ReverseMovementAsync(movementId);
-                TempData["SuccessMessage"] = "Stok hareketi baþarýyla geri alýndý.";
+                TempData["SuccessMessage"] = "Stok hareketi baÅŸarÄ±yla geri alÄ±ndÄ±.";
                 return RedirectToAction(nameof(Index));
             }
             catch (NotFoundException)
             {
-                TempData["ErrorMessage"] = "Hareket bulunamadý.";
+                TempData["ErrorMessage"] = "Hareket bulunamadÄ±.";
                 return RedirectToAction(nameof(Index));
             }
             catch (BusinessException ex)
@@ -254,7 +254,7 @@ namespace StockifyPlus.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Hareketi geri almada hata: {movementId}");
-                TempData["ErrorMessage"] = "Hareket geri alýnýrken hata oluþtu.";
+                TempData["ErrorMessage"] = "Hareket geri alÄ±nÄ±rken hata oluÅŸtu.";
                 return RedirectToAction(nameof(Index));
             }
         }

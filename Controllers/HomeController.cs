@@ -36,7 +36,7 @@ namespace StockifyPlus.Controllers
                 
                 if (cachedMetrics != null)
                 {
-                    _logger.LogInformation("Dashboard metrikleri cache'den yüklendi.");
+                    _logger.LogInformation("Dashboard metrikleri cache'den yÃ¼klendi.");
                     ViewData["TotalProducts"] = cachedMetrics.TotalProducts;
                     ViewData["LowStockProducts"] = cachedMetrics.LowStockProducts;
                     ViewData["TotalCategories"] = cachedMetrics.TotalCategories;
@@ -44,7 +44,7 @@ namespace StockifyPlus.Controllers
                 }
                 else
                 {
-                    _logger.LogInformation("Dashboard metrikleri veritabanýndan yükleniyor...");
+                    _logger.LogInformation("Dashboard metrikleri veritabanÄ±ndan yÃ¼kleniyor...");
                     
                     var activeProducts = await _productService.GetAllActiveProductsAsync();
                     var lowStockProducts = await _productService.GetLowStockProductsAsync();
@@ -71,7 +71,7 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Dashboard veri yükleme hatasý: {ex.Message}");
+                _logger.LogError($"Dashboard veri yÃ¼kleme hatasÄ±: {ex.Message}");
                 ViewData["TotalProducts"] = 0;
                 ViewData["LowStockProducts"] = 0;
                 ViewData["TotalCategories"] = 0;
@@ -114,7 +114,7 @@ namespace StockifyPlus.Controllers
 
                 var productActivities = products.Select(p => new ActivityItem
                 {
-                    Title = "Ürün Eklendi",
+                    Title = "ÃœrÃ¼n Eklendi",
                     Detail = p.Name,
                     Time = p.CreatedDate
                 });
@@ -143,8 +143,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Canlý aktivite akýþý yüklenemedi.");
-                return StatusCode(500, new { success = false, message = "Aktivite verileri alýnamadý." });
+                _logger.LogError(ex, "CanlÄ± aktivite akÄ±ÅŸÄ± yÃ¼klenemedi.");
+                return StatusCode(500, new { success = false, message = "Aktivite verileri alÄ±namadÄ±." });
             }
         }
 
@@ -152,18 +152,18 @@ namespace StockifyPlus.Controllers
         {
             return movementType switch
             {
-                MovementType.Giriþ => "Stok Giriþi",
-                MovementType.Çýkýþ => "Stok Çýkýþý",
+                MovementType.GiriÅŸ => "Stok GiriÅŸi",
+                MovementType.Ã‡Ä±kÄ±ÅŸ => "Stok Ã‡Ä±kÄ±ÅŸÄ±",
                 MovementType.Transfer => "Stok Transfer",
-                MovementType.Ayarlama => "Stok Ayarý",
+                MovementType.Ayarlama => "Stok AyarÄ±",
                 _ => "Hareket"
             };
         }
 
         private static string BuildMovementDetail(Models.StockMovement movement)
         {
-            var productName = movement.Product?.Name ?? "Ürün";
-            var quantityPrefix = movement.MovementType == MovementType.Çýkýþ ? "-" : "+";
+            var productName = movement.Product?.Name ?? "ÃœrÃ¼n";
+            var quantityPrefix = movement.MovementType == MovementType.Ã‡Ä±kÄ±ÅŸ ? "-" : "+";
             return $"{productName} ({quantityPrefix}{movement.Quantity})";
         }
 
@@ -330,9 +330,9 @@ namespace StockifyPlus.Controllers
             if (text.Contains("Login", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("Logout", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("Account", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("Giriþ", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("GiriÅŸ", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("Giris", StringComparison.OrdinalIgnoreCase) ||
-                text.Contains("Kullanýcý", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("KullanÄ±cÄ±", StringComparison.OrdinalIgnoreCase) ||
                 text.Contains("Kullanici", StringComparison.OrdinalIgnoreCase))
             {
                 return "Giris";

@@ -24,7 +24,7 @@ namespace StockifyPlus.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kategorileri listelemede hata");
-                ModelState.AddModelError("", "Kategorileri listelemede hata oluþtu.");
+                ModelState.AddModelError("", "Kategorileri listelemede hata oluÅŸtu.");
                 return View(new List<Models.Category>());
             }
         }
@@ -37,13 +37,13 @@ namespace StockifyPlus.Controllers
             }
             catch (NotFoundException)
             {
-                _logger.LogWarning($"Kategori bulunamadý: {id}");
+                _logger.LogWarning($"Kategori bulunamadÄ±: {id}");
                 return NotFound();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Kategori detaylarýný getirmede hata: {id}");
-                ModelState.AddModelError("", "Kategori detaylarýný getirmede hata oluþtu.");
+                _logger.LogError(ex, $"Kategori detaylarÄ±nÄ± getirmede hata: {id}");
+                ModelState.AddModelError("", "Kategori detaylarÄ±nÄ± getirmede hata oluÅŸtu.");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -59,12 +59,12 @@ namespace StockifyPlus.Controllers
             {
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    ModelState.AddModelError(nameof(name), "Kategori adý boþ býrakýlamaz.");
+                    ModelState.AddModelError(nameof(name), "Kategori adÄ± boÅŸ bÄ±rakÄ±lamaz.");
                     return View();
                 }
 
                 await _categoryService.CreateCategoryAsync(name, description);
-                TempData["SuccessMessage"] = "Kategori baþarýyla oluþturuldu.";
+                TempData["SuccessMessage"] = "Kategori baÅŸarÄ±yla oluÅŸturuldu.";
                 return RedirectToAction(nameof(Index));
             }
             catch (ValidationException ex)
@@ -79,8 +79,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Kategori oluþturmada hata");
-                ModelState.AddModelError("", "Kategori oluþturmada hata oluþtu.");
+                _logger.LogError(ex, "Kategori oluÅŸturmada hata");
+                ModelState.AddModelError("", "Kategori oluÅŸturmada hata oluÅŸtu.");
                 return View();
             }
         }
@@ -97,7 +97,7 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Kategori düzenleme sayfasýný getirmede hata: {id}");
+                _logger.LogError(ex, $"Kategori dÃ¼zenleme sayfasÄ±nÄ± getirmede hata: {id}");
                 ModelState.AddModelError("", "Kategori getirilemedi.");
                 return RedirectToAction(nameof(Index));
             }
@@ -110,13 +110,13 @@ namespace StockifyPlus.Controllers
             {
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    ModelState.AddModelError(nameof(name), "Kategori adý boþ býrakýlamaz.");
+                    ModelState.AddModelError(nameof(name), "Kategori adÄ± boÅŸ bÄ±rakÄ±lamaz.");
                     var category = await _categoryService.GetCategoryByIdAsync(id);
                     return View(category);
                 }
 
                 await _categoryService.UpdateCategoryAsync(id, name, description);
-                TempData["SuccessMessage"] = "Kategori baþarýyla güncellendi.";
+                TempData["SuccessMessage"] = "Kategori baÅŸarÄ±yla gÃ¼ncellendi.";
                 return RedirectToAction(nameof(Index));
             }
             catch (NotFoundException)
@@ -137,8 +137,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Kategori güncellenmede hata: {id}");
-                ModelState.AddModelError("", "Kategori güncellemede hata oluþtu.");
+                _logger.LogError(ex, $"Kategori gÃ¼ncellenmede hata: {id}");
+                ModelState.AddModelError("", "Kategori gÃ¼ncellemede hata oluÅŸtu.");
                 var category = await _categoryService.GetCategoryByIdAsync(id);
                 return View(category);
             }
@@ -156,7 +156,7 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Kategori silme sayfasýný getirmede hata: {id}");
+                _logger.LogError(ex, $"Kategori silme sayfasÄ±nÄ± getirmede hata: {id}");
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -167,7 +167,7 @@ namespace StockifyPlus.Controllers
             try
             {
                 await _categoryService.DeactivateCategoryAsync(id);
-                TempData["SuccessMessage"] = "Kategori baþarýyla silindi.";
+                TempData["SuccessMessage"] = "Kategori baÅŸarÄ±yla silindi.";
                 return RedirectToAction(nameof(Index));
             }
             catch (NotFoundException)
@@ -183,7 +183,7 @@ namespace StockifyPlus.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Kategori silmede hata: {id}");
-                ModelState.AddModelError("", "Kategori silmede hata oluþtu.");
+                ModelState.AddModelError("", "Kategori silmede hata oluÅŸtu.");
                 var category = await _categoryService.GetCategoryByIdAsync(id);
                 return View("Delete", category);
             }

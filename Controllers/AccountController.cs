@@ -28,18 +28,18 @@ namespace StockifyPlus.Controllers
             {
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    ModelState.AddModelError(nameof(username), "Kullanýcý adý boþ býrakýlamaz.");
+                    ModelState.AddModelError(nameof(username), "KullanÄ±cÄ± adÄ± boÅŸ bÄ±rakÄ±lamaz.");
                     return View();
                 }
 
                 if (password != confirmPassword)
                 {
-                    ModelState.AddModelError("", "??ifreler eþleþmiyor.");
+                    ModelState.AddModelError("", "??ifreler eÅŸleÅŸmiyor.");
                     return View();
                 }
 
                 var user = await _accountService.RegisterAsync(username, password, fullName, email, UserRole.DepoPersoneli);
-                TempData["SuccessMessage"] = "Hesap baþarýyla oluþturuldu. Giriþ yapabilirsiniz.";
+                TempData["SuccessMessage"] = "Hesap baÅŸarÄ±yla oluÅŸturuldu. GiriÅŸ yapabilirsiniz.";
                 return RedirectToAction(nameof(Login));
             }
             catch (ValidationException ex)
@@ -54,8 +54,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Kullanýcý kayýtlarken hata");
-                ModelState.AddModelError("", "Kayýt sýrasýnda hata oluþtu.");
+                _logger.LogError(ex, "KullanÄ±cÄ± kayÄ±tlarken hata");
+                ModelState.AddModelError("", "KayÄ±t sÄ±rasÄ±nda hata oluÅŸtu.");
                 return View();
             }
         }
@@ -71,7 +71,7 @@ namespace StockifyPlus.Controllers
             {
                 if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
                 {
-                    ModelState.AddModelError("", "Kullanýcý adý ve þifre boþ býrakýlamaz.");
+                    ModelState.AddModelError("", "KullanÄ±cÄ± adÄ± ve ÅŸifre boÅŸ bÄ±rakÄ±lamaz.");
                     return View();
                 }
 
@@ -95,20 +95,20 @@ namespace StockifyPlus.Controllers
             }
             catch (NotFoundException)
             {
-                ModelState.AddModelError("", "Kullanýcý adý veya þifre hatalý.");
+                ModelState.AddModelError("", "KullanÄ±cÄ± adÄ± veya ÅŸifre hatalÄ±.");
                 return View();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Giriþ sýrasýnda hata");
-                ModelState.AddModelError("", "Giriþ sýrasýnda hata oluþtu.");
+                _logger.LogError(ex, "GiriÅŸ sÄ±rasÄ±nda hata");
+                ModelState.AddModelError("", "GiriÅŸ sÄ±rasÄ±nda hata oluÅŸtu.");
                 return View();
             }
         }
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();
-            TempData["SuccessMessage"] = "Çýkýþ yapýldý.";
+            TempData["SuccessMessage"] = "Ã‡Ä±kÄ±ÅŸ yapÄ±ldÄ±.";
             return RedirectToAction(nameof(Login));
         }
         public async Task<IActionResult> Profile()
@@ -153,12 +153,12 @@ namespace StockifyPlus.Controllers
 
                 if (newPassword != confirmPassword)
                 {
-                    ModelState.AddModelError("", "Yeni þifreler eþleþmiyor.");
+                    ModelState.AddModelError("", "Yeni ÅŸifreler eÅŸleÅŸmiyor.");
                     return View();
                 }
 
                 await _accountService.ChangePasswordAsync(userId, oldPassword, newPassword);
-                TempData["SuccessMessage"] = "??ifre baþarýyla deðiþtirildi.";
+                TempData["SuccessMessage"] = "??ifre baÅŸarÄ±yla deÄŸiÅŸtirildi.";
                 return RedirectToAction(nameof(Profile));
             }
             catch (ValidationException ex)
@@ -173,8 +173,8 @@ namespace StockifyPlus.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "??ifre deðiþtirilirken hata");
-                ModelState.AddModelError("", "??ifre deðiþtirilirken hata oluþtu.");
+                _logger.LogError(ex, "??ifre deÄŸiÅŸtirilirken hata");
+                ModelState.AddModelError("", "??ifre deÄŸiÅŸtirilirken hata oluÅŸtu.");
                 return View();
             }
         }

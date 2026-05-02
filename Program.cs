@@ -16,19 +16,38 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
-Log.Information("StockifyPlus baþlatýlýyor...");
+Log.Information("StockifyPlus baÅŸlatÄ±lÄ±yor...");
 
 try
 {
     Env.Load();
-    Log.Information(".env dosyasý yüklendi");
+    Log.Information(".env dosyasÄ± yÃ¼klendi");
 }
 catch (Exception ex)
 {
-    Log.Warning(ex, ".env dosyasý yüklenemedi, varsayýlan yapýlandýrma kullanýlacak");
+    Log.Warning(ex, ".env dosyasÄ± yÃ¼klenemedi, varsayÄ±lan yapÄ±landÄ±rma kullanÄ±lacak");
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+var geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+if (!string.IsNullOrWhiteSpace(geminiApiKey))
+{
+    builder.Configuration["Gemini:ApiKey"] = geminiApiKey;
+}
+
+var smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST");
+if (!string.IsNullOrWhiteSpace(smtpHost))
+{
+    builder.Configuration["Smtp:Host"] = smtpHost;
+    builder.Configuration["Smtp:Port"] = Environment.GetEnvironmentVariable("SMTP_PORT") ?? builder.Configuration["Smtp:Port"];
+    builder.Configuration["Smtp:UseSsl"] = Environment.GetEnvironmentVariable("SMTP_USE_SSL") ?? builder.Configuration["Smtp:UseSsl"];
+    builder.Configuration["Smtp:SenderEmail"] = Environment.GetEnvironmentVariable("SMTP_SENDER_EMAIL") ?? builder.Configuration["Smtp:SenderEmail"];
+    builder.Configuration["Smtp:SenderName"] = Environment.GetEnvironmentVariable("SMTP_SENDER_NAME") ?? builder.Configuration["Smtp:SenderName"];
+    builder.Configuration["Smtp:Username"] = Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? builder.Configuration["Smtp:Username"];
+    builder.Configuration["Smtp:Password"] = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? builder.Configuration["Smtp:Password"];
+    builder.Configuration["Smtp:AdminEmail"] = Environment.GetEnvironmentVariable("SMTP_ADMIN_EMAIL") ?? builder.Configuration["Smtp:AdminEmail"];
+}
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
@@ -46,14 +65,14 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 );
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Baðlantý dizesi yapýlandýrýlmadý.");
+    ?? throw new InvalidOperationException("BaÄŸlantÄ± dizesi yapÄ±landÄ±rÄ±lmadÄ±.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString)
 );
 
 builder.Services.AddDistributedMemoryCache();
-Log.Information("In-memory cache kullanýlýyor");
+Log.Information("In-memory cache kullanÄ±lÄ±yor");
 
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddSignalR();
@@ -99,7 +118,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         context.Database.Migrate();
-        Log.Information("Veritabaný migration'larý baþarýyla uygulandý");
+        Log.Information("VeritabanÄ± migration'larÄ± baÅŸarÄ±yla uygulandÄ±");
         
         await EnsureDemoAdminUserAsync(context);
         await EnsurePersonalInventoryCategoriesAsync(context);
@@ -107,7 +126,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Veritabaný migration uygulanamadý");
+        Log.Error(ex, "VeritabanÄ± migration uygulanamadÄ±");
     }
 }
 
@@ -163,12 +182,12 @@ app.MapHub<NotificationHub>("/hubs/notification");
 
 try
 {
-    Log.Information("StockifyPlus baþarýyla baþlatýldý");
+    Log.Information("StockifyPlus baÅŸarÄ±yla baÅŸlatÄ±ldÄ±");
     app.Run();
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Uygulama baþlatýlamadý");
+    Log.Fatal(ex, "Uygulama baÅŸlatÄ±lamadÄ±");
     throw;
 }
 finally
@@ -199,7 +218,7 @@ static async Task EnsureDemoAdminUserAsync(ApplicationDbContext context)
 
         await context.AppUsers.AddAsync(demoUser);
         await context.SaveChangesAsync();
-        Log.Information("Demo admin kullanýcýsý oluþturuldu (BCrypt hash): {Username}", demoUsername);
+        Log.Information("Demo admin kullanÄ±cÄ±sÄ± oluÅŸturuldu (BCrypt hash): {Username}", demoUsername);
         return;
     }
 
@@ -216,7 +235,7 @@ static async Task EnsureDemoAdminUserAsync(ApplicationDbContext context)
 
         context.AppUsers.Update(demoUser);
         await context.SaveChangesAsync();
-        Log.Information("Demo admin kullanýcýsý BCrypt'e dönüþtürüldü: {Username}", demoUsername);
+        Log.Information("Demo admin kullanÄ±cÄ±sÄ± BCrypt'e dÃ¶nÃ¼ÅŸtÃ¼rÃ¼ldÃ¼: {Username}", demoUsername);
     }
 }
 
@@ -240,7 +259,7 @@ static async Task NormalizeLegacyPriceScaleAsync(ApplicationDbContext context, s
         }
 
         await context.SaveChangesAsync();
-        Log.Information("Legacy fiyat düzeltmesi uygulandý. Güncellenen ürün sayýsý: {ProductCount}", candidates.Count);
+        Log.Information("Legacy fiyat dÃ¼zeltmesi uygulandÄ±. GÃ¼ncellenen Ã¼rÃ¼n sayÄ±sÄ±: {ProductCount}", candidates.Count);
     }
 
     File.WriteAllText(markerPath, $"AppliedAt={DateTime.UtcNow:O}");
@@ -250,10 +269,10 @@ static async Task EnsurePersonalInventoryCategoriesAsync(ApplicationDbContext co
 {
     var personalCategories = new[]
     {
-        new { Name = "3D Printing", Description = "3D yazýcý filamentleri ve malzemeleri (PLA, PETG, TPU)" },
+        new { Name = "3D Printing", Description = "3D yazÄ±cÄ± filamentleri ve malzemeleri (PLA, PETG, TPU)" },
         new { Name = "Supplements", Description = "Spor takviyeleri ve vitaminler (Kreatin, Protein, Vitamin)" },
-        new { Name = "Music Equipment", Description = "Müzik ekipmanlarý (Mikrofonlar, Gitarlar, Aksesuarlar)" },
-        new { Name = "Motorcycle Parts", Description = "Motosiklet bakým parçalarý ve yaðlar" }
+        new { Name = "Music Equipment", Description = "MÃ¼zik ekipmanlarÄ± (Mikrofonlar, Gitarlar, Aksesuarlar)" },
+        new { Name = "Motorcycle Parts", Description = "Motosiklet bakÄ±m parÃ§alarÄ± ve yaÄŸlar" }
     };
 
     foreach (var categoryData in personalCategories)
@@ -272,7 +291,7 @@ static async Task EnsurePersonalInventoryCategoriesAsync(ApplicationDbContext co
             };
 
             await context.Categories.AddAsync(newCategory);
-            Log.Information("Kiþisel envanter kategorisi oluþturuldu: {CategoryName}", categoryData.Name);
+            Log.Information("KiÅŸisel envanter kategorisi oluÅŸturuldu: {CategoryName}", categoryData.Name);
         }
     }
 

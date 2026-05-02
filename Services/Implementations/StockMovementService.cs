@@ -38,7 +38,7 @@ namespace StockifyPlus.Services.Implementations
         public async Task<IEnumerable<StockMovement>> GetMovementsByProductAsync(int productId)
         {
             if (productId <= 0)
-                throw new ValidationException("Ürün ID geçerli olmalýdýr.");
+                throw new ValidationException("ÃœrÃ¼n ID geÃ§erli olmalÄ±dÄ±r.");
 
             await _productService.GetProductByIdAsync(productId);
 
@@ -52,7 +52,7 @@ namespace StockifyPlus.Services.Implementations
         public async Task<IEnumerable<StockMovement>> GetMovementsByDateRangeAsync(DateTime startDate, DateTime endDate)
         {
             if (startDate > endDate)
-                throw new ValidationException("Baþlangýç tarihi bitiþ tarihinden sonra olamaz.");
+                throw new ValidationException("BaÅŸlangÄ±Ã§ tarihi bitiÅŸ tarihinden sonra olamaz.");
 
             var movements = await _unitOfWork.StockMovementRepository.IncludeProperties(m => m.Product)
                 .Where(m => m.MovementDate >= startDate && m.MovementDate <= endDate)
@@ -64,7 +64,7 @@ namespace StockifyPlus.Services.Implementations
         public async Task<StockMovement> RecordStockInAsync(int productId, int quantity, string? description)
         {
             if (quantity <= 0)
-                throw new ValidationException("Giriþ miktarý 0'dan büyük olmalýdýr.");
+                throw new ValidationException("GiriÅŸ miktarÄ± 0'dan bÃ¼yÃ¼k olmalÄ±dÄ±r.");
 
             var product = await _productService.GetProductByIdAsync(productId);
 
@@ -73,7 +73,7 @@ namespace StockifyPlus.Services.Implementations
             var movement = new StockMovement
             {
                 ProductId = productId,
-                MovementType = MovementType.Giriþ,
+                MovementType = MovementType.GiriÅŸ,
                 Quantity = quantity,
                 MovementDate = DateTime.Now,
                 Description = description?.Trim() ?? string.Empty
@@ -90,19 +90,19 @@ namespace StockifyPlus.Services.Implementations
         public async Task<StockMovement> RecordStockOutAsync(int productId, int quantity, string? description)
         {
             if (quantity <= 0)
-                throw new ValidationException("Çýkýþ miktarý 0'dan büyük olmalýdýr.");
+                throw new ValidationException("Ã‡Ä±kÄ±ÅŸ miktarÄ± 0'dan bÃ¼yÃ¼k olmalÄ±dÄ±r.");
 
             var product = await _productService.GetProductByIdAsync(productId);
 
             if (product.StockQuantity < quantity)
-                throw new BusinessException($"Ürün için yeterli stok yok. Mevcut: {product.StockQuantity}, Ýstenen: {quantity}");
+                throw new BusinessException($"ÃœrÃ¼n iÃ§in yeterli stok yok. Mevcut: {product.StockQuantity}, Ä°stenen: {quantity}");
 
             product.StockQuantity -= quantity;
 
             var movement = new StockMovement
             {
                 ProductId = productId,
-                MovementType = MovementType.Çýkýþ,
+                MovementType = MovementType.Ã‡Ä±kÄ±ÅŸ,
                 Quantity = quantity,
                 MovementDate = DateTime.Now,
                 Description = description?.Trim() ?? string.Empty
@@ -118,12 +118,12 @@ namespace StockifyPlus.Services.Implementations
         public async Task<StockMovement> RecordStockTransferAsync(int productId, int quantity, string? description)
         {
             if (quantity <= 0)
-                throw new ValidationException("Transfer miktarý 0'dan büyük olmalýdýr.");
+                throw new ValidationException("Transfer miktarÄ± 0'dan bÃ¼yÃ¼k olmalÄ±dÄ±r.");
 
             var product = await _productService.GetProductByIdAsync(productId);
 
             if (product.StockQuantity < quantity)
-                throw new BusinessException($"Transfer için yeterli stok yok.");
+                throw new BusinessException($"Transfer iÃ§in yeterli stok yok.");
 
             var movement = new StockMovement
             {
@@ -145,7 +145,7 @@ namespace StockifyPlus.Services.Implementations
             var product = await _productService.GetProductByIdAsync(productId);
 
             if (product.StockQuantity + quantity < 0)
-                throw new BusinessException("Ayarlama sonrasý stok miktarý negatif olamaz.");
+                throw new BusinessException("Ayarlama sonrasÄ± stok miktarÄ± negatif olamaz.");
 
             product.StockQuantity += quantity;
             var stockReduced = quantity < 0;
@@ -174,7 +174,7 @@ namespace StockifyPlus.Services.Implementations
         public async Task ReverseMovementAsync(int movementId)
         {
             if (movementId <= 0)
-                throw new ValidationException("Hareket ID geçerli olmalýdýr.");
+                throw new ValidationException("Hareket ID geÃ§erli olmalÄ±dÄ±r.");
 
             var movement = await _unitOfWork.StockMovementRepository.GetByIdAsync(movementId);
             if (movement == null)
@@ -184,13 +184,13 @@ namespace StockifyPlus.Services.Implementations
 
             switch (movement.MovementType)
             {
-                case MovementType.Giriþ:
+                case MovementType.GiriÅŸ:
                     if (product.StockQuantity < movement.Quantity)
-                        throw new BusinessException("Stok hareketi geri alýnamaz.");
+                        throw new BusinessException("Stok hareketi geri alÄ±namaz.");
                     product.StockQuantity -= movement.Quantity;
                     break;
 
-                case MovementType.Çýkýþ:
+                case MovementType.Ã‡Ä±kÄ±ÅŸ:
                     product.StockQuantity += movement.Quantity;
                     break;
 
@@ -200,7 +200,7 @@ namespace StockifyPlus.Services.Implementations
 
                 case MovementType.Ayarlama:
                     if (product.StockQuantity - movement.Quantity < 0)
-                        throw new BusinessException("Hareket geri alýnamaz.");
+                        throw new BusinessException("Hareket geri alÄ±namaz.");
                     product.StockQuantity -= movement.Quantity;
                     break;
             }

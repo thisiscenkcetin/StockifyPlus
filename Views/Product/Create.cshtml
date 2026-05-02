@@ -1,12 +1,12 @@
 @{
-    ViewBag.Title = "Yeni &Uuml;r&uuml;n Oluþtur";
+    ViewBag.Title = "Yeni &Uuml;r&uuml;n OluÅŸtur";
     var categories = ViewBag.Categories as List<StockifyPlus.Models.Category> ?? new List<StockifyPlus.Models.Category>();
 }
 
 <div class="sp-page-shell">
 <div class="sp-page-header">
     <h2 class="sp-page-title">
-        <i class="fas fa-plus"></i> Yeni Ürün
+        <i class="fas fa-plus"></i> Yeni ÃœrÃ¼n
     </h2>
 </div>
 
@@ -39,10 +39,10 @@
                             <div class="card-body">
                                 <div class="row g-2">
                                     <div class="col-md-5">
-                                        <input type="text" id="quickCategoryName" class="form-control" placeholder="Kategori Adý">
+                                        <input type="text" id="quickCategoryName" class="form-control" placeholder="Kategori AdÄ±">
                                     </div>
                                     <div class="col-md-5">
-                                        <input type="text" id="quickCategoryDescription" class="form-control" placeholder="A&ccedil;ýklama (opsiyonel)">
+                                        <input type="text" id="quickCategoryDescription" class="form-control" placeholder="A&ccedil;Ä±klama (opsiyonel)">
                                     </div>
                                     <div class="col-md-2 d-grid">
                                         <button type="button" class="btn btn-success" id="saveQuickCategoryBtn">Ekle</button>
@@ -54,7 +54,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="name" class="form-label">&Uuml;r&uuml;n Adý <span class="text-danger">*</span></label>
+                        <label for="name" class="form-label">&Uuml;r&uuml;n AdÄ± <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="name" name="name" required>
                     </div>
                     
@@ -76,7 +76,7 @@
                         <div class="col-md-4 mb-3">
                             <label for="vatRate" class="form-label">KDV</label>
                             <select class="form-select" id="vatRate">
-                                <option value="0">%0 (Ýhracat Ýstisna)</option>
+                                <option value="0">%0 (Ä°hracat Ä°stisna)</option>
                                 <option value="1">%1</option>
                                 <option value="10">%10</option>
                                 <option value="20" selected>%20</option>
@@ -105,7 +105,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="description" class="form-label">A&ccedil;ýklama</label>
+                        <label for="description" class="form-label">A&ccedil;Ä±klama</label>
                         <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                     </div>
                     
@@ -139,10 +139,10 @@
                     <i class="fas fa-lightbulb"></i> &#304;pu&ccedil;lar&#305;
                 </h6>
                 <ul class="small">
-                    <li>SKU benzersiz olmalýdýr.</li>
-                    <li>Kritik stok seviyesi, otomatik uyarý i&ccedil;in kullanýlýr.</li>
-                    <li>Fiyat para birimi olarak kayýt edilir.</li>
-                    <li>&Uuml;r&uuml;ne stok eklemek i&ccedil;in Stok Hareketleri sekmesini kullanýn.</li>
+                    <li>SKU benzersiz olmalÄ±dÄ±r.</li>
+                    <li>Kritik stok seviyesi, otomatik uyarÄ± i&ccedil;in kullanÄ±lÄ±r.</li>
+                    <li>Fiyat para birimi olarak kayÄ±t edilir.</li>
+                    <li>&Uuml;r&uuml;ne stok eklemek i&ccedil;in Stok Hareketleri sekmesini kullanÄ±n.</li>
                 </ul>
             </div>
     </div>
@@ -201,7 +201,7 @@
                     if (!name) {
                         if (quickCategoryMessage) {
                             quickCategoryMessage.className = 'text-danger';
-                            quickCategoryMessage.textContent = 'Kategori adý zorunludur.';
+                            quickCategoryMessage.textContent = 'Kategori adÄ± zorunludur.';
                         }
                         return;
                     }
@@ -236,7 +236,7 @@
                         if (quickCategoryDescription) quickCategoryDescription.value = '';
                         if (quickCategoryMessage) {
                             quickCategoryMessage.className = 'text-success';
-                            quickCategoryMessage.textContent = 'Kategori eklendi ve seçildi.';
+                            quickCategoryMessage.textContent = 'Kategori eklendi ve seÃ§ildi.';
                         }
                     } catch (error) {
                         if (quickCategoryMessage) {
