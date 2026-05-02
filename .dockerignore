@@ -1,0 +1,16 @@
+bin/
+obj/
+.git/
+.vs/
+.vscode/
+Logs/
+artifacts/
+
+.env
+.env.*
+!.env.example
+
+Dockerfile
+README.md
+docs/
+tez.md
