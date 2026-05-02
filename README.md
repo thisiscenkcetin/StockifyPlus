@@ -1,6 +1,8 @@
 # StockifyPlus
 
-StockifyPlus, Trakya Üniversitesi bitirme projesi kapsamında geliştirilen ASP.NET Core MVC tabanlı stok ve depo yönetim uygulamasıdır. Uygulama ürün, kategori, stok hareketi, kritik stok takibi, Excel işlemleri, barkod yönetimi, raporlama ve StockAI destekli karar yardımcısı modüllerini tek proje altında toplar.
+StockifyPlus, Trakya Üniversitesi bitirme projesi kapsamında geliştirilen ASP.NET Core MVC tabanlı stok ve depo yönetim uygulamasıdır. Uygulama ürün, kategori, stok hareketi, kritik stok takibi, Excel işlemleri, barkod yönetimi, raporlama ve StockAI Agent destekli karar yardımcısı modüllerini tek proje altında toplar.
+
+![StockifyPlus](https://github.com/thisiscenkcetin/StockifyPlus/blob/main/wwwroot/images/Stockify.jpg?raw=true)
 
 ## Özellikler
 
@@ -10,7 +12,7 @@ StockifyPlus, Trakya Üniversitesi bitirme projesi kapsamında geliştirilen ASP
 - EPPlus ile Excel içe ve dışa aktarım
 - Kamera ile barkod okuma ve barkod etiketi yazdırma
 - Dashboard üzerinde KPI, hareket ve rapor görünümü
-- pdfMake ile PDF rapor çıktısı
+- pdfMake ile PDF iş zekası akıllı rapor çıktısı
 - Karanlık tema ve responsive arayüz
 - StockAI ile kontrollü stok analizi ve onaylı işlem akışı
 - Talep havuzu ve StockAI audit geçmişi
@@ -73,7 +75,7 @@ dotnet run
 
 ## Yapılandırma
 
-Gemini ve Groq API anahtarları ortam değişkeni veya yerel yapılandırma üzerinden verilmelidir. API anahtarları güvenlik nedeniyle depoya eklenmemelidir.
+Gemini ve Groq API anahtarları ortam değişkeni veya yerel yapılandırma üzerinden verilmelidir. API anahtarları güvenlik nedeniyle depoya eklenmemiştir. Düzgün çalıması için api eklenmesi gerekmektedir. Aksi takdirde ai agent bağlantı sorunu yaşayacaktır. 
 
 Örnek `.env` alanları:
 
@@ -86,6 +88,5 @@ GROQ_API_KEY=
 
 Bu proje stok yönetimi sürecini yazılım mühendisliği bakışıyla ele almak için hazırlanmıştır. Veri modeli, iş kuralları, kullanıcı arayüzü, dış servis entegrasyonu, canlı bildirim, raporlama ve kontrollü StockAI işlemleri birlikte değerlendirilmiştir.
 
-## Lisans
-
+dev.cenkcetin@gmail.com
 Bu proje MIT lisansı ile paylaşılmıştır.
